@@ -17,7 +17,7 @@ styles.forEach(style => {
 const map = new maplibregl.Map({
     container: 'map',
     style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-    center: [2.9605274404101465, 42.45678303462299],
+    center: [2.9881414786570986, 42.2606115313024],
     zoom: 10,
     attributionControl: false
 });
