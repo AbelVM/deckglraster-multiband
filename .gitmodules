@@ -1,0 +1,3 @@
+[submodule "deck.gl-raster"]
+	path = deck.gl-raster
+	url = git@github.com:developmentseed/deck.gl-raster.git

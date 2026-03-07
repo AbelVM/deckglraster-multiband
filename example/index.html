@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>deck.gl-raster-multiband Example</title>
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js'></script>
+    <link rel='stylesheet' href='./assets/app.css' />
+    <script type='module' src='./assets/app.js'></script>
+</head>
+
+<body>
+    <section class="controls-panel" aria-label="Overlay controls">
+        <label class="control-group" for="layers">
+            <span>Style</span>
+            <select id="layers"></select>
+        </label>
+        <label class="control-group" for="overlay-opacity">
+            <span>Opacity</span>
+            <div class="slider-row">
+                <input id="overlay-opacity" type="range" min="0" max="100" step="1" value="100" />
+                <output id="overlay-opacity-value" for="overlay-opacity">100%</output>
+            </div>
+        </label>
+    </section>
+    <div id='map'></div>
+</body>
+
+</html>

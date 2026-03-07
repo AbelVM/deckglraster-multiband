@@ -1,0 +1,68 @@
+{
+  "name": "deck.gl-raster-multiband",
+  "version": "1.0.0",
+  "description": "A JavaScript plugin that enables GPU-accelerated multiband raster rendering for deck.gl-raster",
+  "type": "module",
+  "main": "./dist/deck.gl-raster-multiband.cjs.js",
+  "module": "./dist/deck.gl-raster-multiband.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/deck.gl-raster-multiband.es.js",
+      "require": "./dist/deck.gl-raster-multiband.cjs.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "submodules": "git submodule update --init --recursive",
+    "install:gpu": "CC=gcc-11 CXX=g++-11 pnpm install gpu.js",
+    "setup": "pnpm run submodules && pnpm install && pnpm run install:gpu",
+    "dev": "vite",
+    "build:lib": "BUILD_MODE=library vite build",
+    "build:example": "vite build",
+    "build": "pnpm run build:lib",
+    "build:all": "pnpm run build:lib && pnpm run build:example",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "deck.gl",
+    "raster",
+    "multiband",
+    "geotiff",
+    "gpu",
+    "webgl",
+    "geospatial",
+    "sentinel-2",
+    "ndvi"
+  ],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "gpu.js": "^2.16.0",
+    "proj4": ">=2.20.4"
+  },
+  "peerDependencies": {
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/geo-layers": "^9.2.11",
+    "@deck.gl/mapbox": "^9.2.11"
+  },
+  "devDependencies": {
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/extensions": "^9.2.11",
+    "@deck.gl/geo-layers": "^9.2.11",
+    "@deck.gl/layers": "^9.2.11",
+    "@deck.gl/mapbox": "^9.2.11",
+    "vite": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
