@@ -2,6 +2,8 @@
 
 A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
 
+Live demo: https://abelvm.github.io/deckglraster-multiband/
+
 ## Table of Contents
 
 - [Features](#features)
@@ -533,7 +535,13 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## Example
 
+**Live demo: https://abelvm.github.io/deckglraster-multiband/**
+
 See the [example](./example) directory for a complete working example with MapLibre GL JS.
+
+The example raster source was taken from [geomatico/maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol).
+
+
 
 To run the example:
 
