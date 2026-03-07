@@ -76,10 +76,7 @@ const styles = [
       let ar = b4 / maxR;
       ar = Math.max(0.0, Math.min(1.0, ar));
       let den = ar * twoTxOverMaxMinusOne - txOverMax;
-      let rAdj = 0.0;
-      if (Math.abs(den) > 0.0000001) {
-        rAdj = ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den;
-      }
+      let rAdj = Math.abs(den) > 0.0000001 ? ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den : 0.0;
       rAdj = Math.max(0.0, Math.min(1.0, rAdj));
       let rLin = (Math.pow(rAdj + gOff, gamma) - gOffPow) / gOffRange;
       rLin = Math.max(0.0, Math.min(1.0, rLin));
@@ -87,10 +84,7 @@ const styles = [
       ar = b3 / maxR;
       ar = Math.max(0.0, Math.min(1.0, ar));
       den = ar * twoTxOverMaxMinusOne - txOverMax;
-      let gAdj = 0.0;
-      if (Math.abs(den) > 0.0000001) {
-        gAdj = ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den;
-      }
+      let gAdj = Math.abs(den) > 0.0000001 ? ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den : 0.0;
       gAdj = Math.max(0.0, Math.min(1.0, gAdj));
       let gLin = (Math.pow(gAdj + gOff, gamma) - gOffPow) / gOffRange;
       gLin = Math.max(0.0, Math.min(1.0, gLin));
@@ -98,10 +92,7 @@ const styles = [
       ar = b2 / maxR;
       ar = Math.max(0.0, Math.min(1.0, ar));
       den = ar * twoTxOverMaxMinusOne - txOverMax;
-      let bAdj = 0.0;
-      if (Math.abs(den) > 0.0000001) {
-        bAdj = ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den;
-      }
+      let bAdj = Math.abs(den) > 0.0000001 ? ar * (ar * txOverMaxPlusTyMinusOne - 1.0) / den : 0.0;
       bAdj = Math.max(0.0, Math.min(1.0, bAdj));
       let bLin = (Math.pow(bAdj + gOff, gamma) - gOffPow) / gOffRange;
       bLin = Math.max(0.0, Math.min(1.0, bLin));
