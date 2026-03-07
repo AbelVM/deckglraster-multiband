@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # customization
 .github/
+prompt.md
+issue.md
+fix.md
