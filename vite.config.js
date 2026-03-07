@@ -47,6 +47,7 @@ export default defineConfig(
     : {
         // Example app build configuration
         root: path.resolve(projectDir, 'example'),
+        base: '/deckglraster-multiband/',
         resolve: {
           dedupe: [
             '@deck.gl/core',
