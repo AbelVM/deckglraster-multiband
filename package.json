@@ -39,7 +39,7 @@
     "sentinel-2",
     "ndvi"
   ],
-  "author": "",
+  "author": "Abel Vázquez Montoro",
   "license": "AGPL-3.0-only",
   "dependencies": {
     "gpu.js": "^2.16.0",
@@ -63,6 +63,6 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git@github.com:AbelVM/deckglraster-multiband.git"
   }
 }

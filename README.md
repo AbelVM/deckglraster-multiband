@@ -1,6 +1,6 @@
 # deck.gl-raster-multiband
 
-A JavaScript plugin that enables GPU-accelerated multiband raster rendering for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
+A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
 
 ## Features
 
@@ -39,6 +39,58 @@ cd deck.gl-raster && pnpm install && cd ..
 
 ```bash
 pnpm add deck.gl-raster-multiband
+```
+
+## Installation Troubleshooting: GPU.js Build Issues
+
+[GPU.js](https://github.com/gpujs/gpu.js) requires native compilation of the [`gl`](https://github.com/stackgl/headless-gl) package, which can fail on some systems due to missing OS dependencies or GCC version incompatibilities.
+
+### Common Issues
+
+**On Ubuntu/Debian:**
+
+The build may fail due to missing X11 development libraries and older GCC versions. Refer to [GPU.js Issue #770](https://github.com/gpujs/gpu.js/issues/770) for detailed discussion and workarounds.
+
+**Required OS Dependencies (Ubuntu/Debian):**
+
+```bash
+sudo apt-get install -y libxi-dev gcc-11 g++-11
+```
+
+**Build with GCC-11 (Required on some systems):**
+
+If your system has GCC13+ (which has stricter header requirements incompatible with the gl package), force GCC-11:
+
+```bash
+CC=gcc-11 CXX=g++-11 pnpm install
+```
+
+Or use the provided setup script (recommended):
+
+```bash
+pnpm run setup
+```
+
+This script automatically runs initialization and package installation with GCC-11 constraints.
+
+**On macOS & Windows:**
+
+See [GPU.js Issue #770](https://github.com/gpujs/gpu.js/issues/770) for platform-specific solutions including Visual Studio and Xcode compatibility workarounds.
+
+**Alternative: Use Prebuilt Binaries**
+
+If native compilation fails, you can override the `gl` dependency to use prebuilt binaries:
+
+```json
+{
+  "overrides": {
+    "gpu.js": {
+      "gl": {
+        "node-gyp": ">7.0.0"
+      }
+    }
+  }
+}
 ```
 
 ## Package Exports
