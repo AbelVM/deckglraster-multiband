@@ -2,6 +2,30 @@
 
 A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Install From Source (Recommended)](#install-from-source-recommended)
+  - [Build Commands](#build-commands)
+  - [Install As Dependency](#install-as-dependency)
+- [Installation Troubleshooting: GPU.js Build Issues](#installation-troubleshooting-gpujs-build-issues)
+  - [Common Issues](#common-issues)
+- [Package Exports](#package-exports)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+  - [Constructor](#constructor)
+  - [Render Output Modes](#render-output-modes)
+  - [Public Properties](#public-properties)
+  - [Public Methods](#public-methods)
+- [GPU.js Kernel Limitations](#gpujs-kernel-limitations)
+- [Styling Quick Reference](#styling-quick-reference)
+- [Dependencies](#dependencies)
+- [Browser Support](#browser-support)
+- [License](#license)
+- [Contributing](#contributing)
+- [Example](#example)
+
 ## Features
 
 - 🚀 GPU-accelerated rendering using GPU.js
