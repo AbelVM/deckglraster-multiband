@@ -20,6 +20,13 @@ Live demo: https://abelvm.github.io/deckglraster-multiband/
   - [Render Output Modes](#render-output-modes)
   - [Public Properties](#public-properties)
   - [Public Methods](#public-methods)
+    - [`addStyle(name, fn, options)`](#addstylename-fn-options)
+    - [`removeStyle(name)`](#removestylename)
+    - [`setActiveStyle(name, target, layerId)`](#setactivestylename-target-layerid)
+    - [`getActiveStyle()`](#getactivestyle)
+    - [`getStyles()`](#getstyles)
+    - [`getPixelValues(lngLat, target, layerId)`](#getpixelvalueslnglat-target-layerid)
+    - [`destroy()`](#destroy)
 - [GPU.js Kernel Limitations](#gpujs-kernel-limitations)
 - [Styling Quick Reference](#styling-quick-reference)
 - [Dependencies](#dependencies)
@@ -30,12 +37,11 @@ Live demo: https://abelvm.github.io/deckglraster-multiband/
 
 ## Features
 
-- 🚀 GPU-accelerated rendering using GPU.js
+- 🚀 GPU-accelerated multiband raster algebra and styling using GPU.js
 - 🎨 Flexible style system for custom band combinations
-- 🌈 Built-in styles for common visualizations (True Color, False Color, NDVI, etc.)
 - 🔄 Dynamic style switching at runtime
 - 🔌 Easy integration with deck.gl COGLayer
-- 📊 Support for multiband raster data (e.g., Sentinel-2)
+- 🧪 Pixel sampling API with style-aware value evaluation (`getPixelValues`)
 
 ## Installation
 
@@ -376,6 +382,44 @@ const styleNames = multiband.getStyles();
 console.log('Available styles:', styleNames);
 ```
 
+#### `getPixelValues(lngLat, target, layerId)`
+
+Sample the clicked pixel from currently loaded tiles and evaluate the active style at that pixel.
+
+**Parameters:**
+
+- `lngLat` (Array|Object) - Click position as `[lng, lat]` or `{lng, lat}`
+- `target` (Object) - deck instance or map-like object exposing `__deck`
+- `layerId` (string, optional, default: `'cog-layer'`) - COGLayer id
+
+**Returns:** `Object|null`
+
+```javascript
+{
+  latlng: { lat, lng },
+  selectedstyle: 'Style Name',
+  value,   // Type 1: direct fn output, Type 2: scalar fn output (channel 0)
+  bands    // raw band array at sampled pixel
+}
+```
+
+Type-specific `value` behavior:
+
+- Type 1 style: `value` is the direct output returned by style `fn`.
+- Type 2 style: `value` is the scalar computed by style `fn` (first element of `[scalar, 0, 0, alpha]`), without applying gradient colorization.
+
+The method automatically resolves tile bounds CRS and transforms click coordinates to match projected tile coordinates when needed.
+
+**Example:**
+
+```javascript
+const sample = multiband.getPixelValues(event.lngLat, map, 'cog-layer');
+if (sample) {
+  console.log(`${sample.selectedstyle}:`, sample.value);
+  console.log('Bands:', sample.bands);
+}
+```
+
 #### `destroy()`
 
 Destroy the multiband instance and release GPU resources.
@@ -538,6 +582,12 @@ Contributions are welcome! Please open an issue or submit a pull request.
 **Live demo: https://abelvm.github.io/deckglraster-multiband/**
 
 See the [example](./example) directory for a complete working example with MapLibre GL JS.
+
+Sampling UI behavior in the example:
+
+- Popup shows `StyleName: value` only.
+- If `value` is RGB, a color swatch is shown next to the value.
+- Lateral panel shows `StyleName: value` and a full band table.
 
 The example raster source was taken from [geomatico/maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol).
 

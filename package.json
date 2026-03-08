@@ -1,7 +1,7 @@
 {
   "name": "deck.gl-raster-multiband",
   "version": "1.0.0",
-  "description": "A JavaScript plugin that enables GPU-accelerated multiband raster rendering for deck.gl-raster",
+  "description": "A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for deck.gl-raster",
   "type": "module",
   "main": "./dist/deck.gl-raster-multiband.cjs.js",
   "module": "./dist/deck.gl-raster-multiband.es.js",

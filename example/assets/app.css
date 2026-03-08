@@ -60,6 +60,10 @@ body,
     color: #333;
 }
 
+.maplibregl-popup {
+    z-index: 2000;
+}
+
 @media (max-width: 640px) {
     .controls-panel {
         top: 12px;
