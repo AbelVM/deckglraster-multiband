@@ -231,15 +231,21 @@ map.on('load', () => {
             .join('');
 
         const valueLabel = formatValue(sample.value);
+        const currentStyleDef = styles.find((style) => style && style.name === sample.selectedstyle);
+        const isType2Style = Boolean(currentStyleDef && Array.isArray(currentStyleDef.colors) && Array.isArray(currentStyleDef.stops));
 
         const rgb = getRgbValue(sample.value);
         const swatch = rgb
             ? `<span style="display:inline-block;width:12px;height:12px;margin-left:6px;vertical-align:middle;background:rgb(${rgb.r}, ${rgb.g}, ${rgb.b});"></span>`
             : '';
 
+        const popupValueMarkup = isType2Style
+            ? `<strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}`
+            : `<strong>${sample.selectedstyle}:</strong><br/>${valueLabel}${swatch}`;
+
         const content = `
             <div style="font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; font-size: 12px; line-height: 1.35; white-space: nowrap;">
-                <strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}
+                ${popupValueMarkup}
             </div>
         `;
 
@@ -264,8 +270,6 @@ map.on('load', () => {
                 <tbody>${rows}</tbody>
             </table>
         `;
-
-        console.log('[Multiband] Pixel sample', sample);
     };
 
     // Single click handler avoids duplicate sampling events.
