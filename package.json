@@ -32,7 +32,7 @@
     "build:example:deploy": "vite build --base /deckglraster-multiband/ --outDir dist-deploy",
     "build": "pnpm run build:lib",
     "build:all": "pnpm run build:lib && pnpm run build:example:deploy",
-    "build:docs": "jsdoc -c jsdoc.json",
+    "build:docs": "jsdoc -c scripts/jsdoc.json && node scripts/customize-jsdoc.mjs",
     "release": "pnpm run build:all && pnpm run build:docs",
     "deploy": "bash scripts/deploy.sh",
     "preview": "vite preview"
