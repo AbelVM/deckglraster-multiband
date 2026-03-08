@@ -10,6 +10,7 @@ Live demo: https://abelvm.github.io/deckglraster-multiband/
 - [Installation](#installation)
   - [Install From Source (Recommended)](#install-from-source-recommended)
   - [Build Commands](#build-commands)
+  - [Documentation](#documentation)
   - [Install As Dependency](#install-as-dependency)
   - [Using from CDN](#using-from-cdn)
 - [Installation Troubleshooting: GPU.js Build Issues](#installation-troubleshooting-gpujs-build-issues)
