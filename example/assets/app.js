@@ -256,7 +256,10 @@ map.on('load', () => {
 
         sampleStatus.style.background = '#f5f7fa';
         sampleStatus.style.color = '#233044';
-        sampleStatus.innerHTML = `<strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}`;
+        const panelValueMarkup = isType2Style
+            ? `<strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}`
+            : `<strong>${sample.selectedstyle}:</strong><br/>${valueLabel}${swatch}`;
+        sampleStatus.innerHTML = panelValueMarkup;
 
         sampleDetails.style.display = 'block';
         sampleDetails.innerHTML = `
@@ -278,6 +281,7 @@ map.on('load', () => {
     });
 
     initSelector('layers', multiband, (newStyle) => {
+        pixelPopup.remove();
         multiband.setActiveStyle(newStyle, map, 'cog-layer');
     });
 });
