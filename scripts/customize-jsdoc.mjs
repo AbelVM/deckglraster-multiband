@@ -12,21 +12,39 @@ const targetCssPath = path.join(docDir, 'styles', 'jsdoc-custom.css');
 fs.copyFileSync(customCssPath, targetCssPath);
 console.log('✅ Copied custom CSS to doc/styles/');
 
+// Copy favicon from example/ to doc/
+const faviconSrc = path.resolve(__dirname, '..', 'example', 'favicon.ico');
+const faviconDest = path.resolve(docDir, 'favicon.ico');
+try {
+  fs.copyFileSync(faviconSrc, faviconDest);
+  console.log('✅ Copied favicon.ico to doc/');
+} catch (e) {
+  console.warn('⚠️ Could not copy favicon.ico:', e.message);
+}
+
 // Add custom CSS link to all HTML files
 function processHtmlFile(filePath) {
   let content = fs.readFileSync(filePath, 'utf-8');
-  
-  // Check if custom CSS is already included
-  if (content.includes('jsdoc-custom.css')) {
-    return false;
+
+  // Replace "JSDoc" with "deck.gl-raster-multiband" in title
+  content = content.replace(/<title>JSDoc: /g, '<title>deck.gl-raster-multiband ');
+
+  // Inject favicon if not present
+  if (!content.includes('rel="icon"')) {
+    content = content.replace(
+      /<head>([\s\S]*?)(<meta charset="utf-8">)/,
+      '<head>$1$2\n    <link rel="icon" type="image/x-icon" href="favicon.ico">'
+    );
   }
-  
+
   // Add custom CSS link after jsdoc-default.css
-  content = content.replace(
-    '<link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">',
-    '<link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">\n    <link type="text/css" rel="stylesheet" href="styles/jsdoc-custom.css">'
-  );
-  
+  if (!content.includes('jsdoc-custom.css')) {
+    content = content.replace(
+      '<link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">',
+      '<link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">\n    <link type="text/css" rel="stylesheet" href="styles/jsdoc-custom.css">'
+    );
+  }
+
   fs.writeFileSync(filePath, content, 'utf-8');
   return true;
 }

@@ -10,10 +10,10 @@
   },
   "plugins": ["plugins/markdown"],
   "templates": {
-    "cleverLinks": false,
-    "monospaceLinks": false,
     "default": {
-      "outputSourceFiles": true
+      "outputSourceFiles": true,
+      "includeFavicon": true,
+      "title": "deck.gl-raster-multiband documentation"
     }
   },
   "markdown": {
