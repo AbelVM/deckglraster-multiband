@@ -16,7 +16,7 @@ echo "🔖 Using package.json version $VERSION"
 git add .
 git commit -am "chore: release v$VERSION"
 
-git tag "v$VERSION"
+git tag -a "v$VERSION" -m "Release v$VERSION"
 git push && git push --tags
 
 echo "🚀 Building all artifacts..."
