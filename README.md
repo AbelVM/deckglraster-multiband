@@ -2,7 +2,7 @@
 
 A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
 
-Live demo: https://abelvm.github.io/deckglraster-multiband/
+Live demo: [https://abelvm.github.io/deckglraster-multiband/](https://abelvm.github.io/deckglraster-multiband/)
 
 ## Table of Contents
 
