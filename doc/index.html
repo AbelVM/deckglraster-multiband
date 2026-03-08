@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1 id="deck.gl-raster-multiband">deck.gl-raster-multiband</h1>
+<p>A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for <a href="https://github.com/developmentseed/deck.gl-raster">deck.gl-raster</a> using <a href="https://github.com/gpujs/gpu.js">GPU.js</a>.</p>
+<p>Live demo: https://abelvm.github.io/deckglraster-multiband/</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#installation">Installation</a>
+<ul>
+<li><a href="#install-from-source-recommended">Install From Source (Recommended)</a></li>
+<li><a href="#build-commands">Build Commands</a></li>
+<li><a href="#install-as-dependency">Install As Dependency</a></li>
+<li><a href="#using-from-cdn">Using from CDN</a></li>
+</ul>
+</li>
+<li><a href="#installation-troubleshooting-gpujs-build-issues">Installation Troubleshooting: GPU.js Build Issues</a>
+<ul>
+<li><a href="#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li><a href="#package-exports">Package Exports</a></li>
+<li><a href="#quick-start">Quick Start</a></li>
+<li><a href="#api-reference">API Reference</a>
+<ul>
+<li><a href="#constructor">Constructor</a></li>
+<li><a href="#render-output-modes">Render Output Modes</a></li>
+<li><a href="#public-properties">Public Properties</a></li>
+<li><a href="#public-methods">Public Methods</a>
+<ul>
+<li><a href="#addstylename-fn-options"><code>addStyle(name, fn, options)</code></a></li>
+<li><a href="#removestylename"><code>removeStyle(name)</code></a></li>
+<li><a href="#setactivestylename-target-layerid"><code>setActiveStyle(name, target, layerId)</code></a></li>
+<li><a href="#getactivestyle"><code>getActiveStyle()</code></a></li>
+<li><a href="#getstyles"><code>getStyles()</code></a></li>
+<li><a href="#getpixelvalueslnglat-target-layerid"><code>getPixelValues(lngLat, target, layerId)</code></a></li>
+<li><a href="#destroy"><code>destroy()</code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#gpujs-kernel-limitations">GPU.js Kernel Limitations</a></li>
+<li><a href="#styling-quick-reference">Styling Quick Reference</a></li>
+<li><a href="#dependencies">Dependencies</a></li>
+<li><a href="#browser-support">Browser Support</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#example">Example</a></li>
+</ul>
+<h2 id="features">Features</h2>
+<ul>
+<li>🚀 GPU-accelerated multiband raster algebra and styling using GPU.js</li>
+<li>🎨 Flexible style system for custom band combinations</li>
+<li>🔄 Dynamic style switching at runtime</li>
+<li>🔌 Easy integration with deck.gl COGLayer</li>
+<li>🧪 Pixel sampling API with style-aware value evaluation (<code>getPixelValues</code>)</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<h3 id="install-from-source-(recommended)">Install From Source (Recommended)</h3>
+<pre class="prettyprint source lang-bash"><code>pnpm run setup
+</code></pre>
+<h3 id="build-commands">Build Commands</h3>
+<pre class="prettyprint source lang-bash"><code># Build the library to dist/
+pnpm run build:lib
+
+# Build the example app for local development (base path: /)
+pnpm run build:example:local
+
+# Build the example app for deployment to GitHub Pages (base path: /deckglraster-multiband/)
+pnpm run build:example:deploy
+
+# Build both library and example (uses deploy settings for example)
+pnpm run build:all
+
+# Generate JSDoc documentation to doc/
+pnpm run build:docs
+
+# Build everything (library, example, and docs)
+pnpm run release
+
+# Deploy to GitHub Pages (builds, commits, and pushes to gh-pages branch)
+# Optional: provide custom commit message
+pnpm run deploy
+pnpm run deploy &quot;feat: add new feature&quot;
+
+# If you plan to build all submodule packages/examples, install its deps once
+cd deck.gl-raster && pnpm install && cd ..
+</code></pre>
+<h3 id="documentation">Documentation</h3>
+<p>Generated JSDoc documentation is available in the <code>doc/</code> folder after running <code>pnpm run build:docs</code>. Open <code>doc/index.html</code> in your browser to view the complete API documentation.</p>
+<h3 id="install-as-dependency">Install As Dependency</h3>
+<pre class="prettyprint source lang-bash"><code>pnpm add deck.gl-raster-multiband
+</code></pre>
+<h3 id="using-from-cdn">Using from CDN</h3>
+<p>For quick prototyping or when you don't use a build system, load the UMD bundle from a CDN:</p>
+<pre class="prettyprint source lang-html"><code>&lt;!DOCTYPE html>
+&lt;html>
+&lt;head>
+  &lt;script src=&quot;https://unpkg.com/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js&quot;>&lt;/script>
+&lt;/head>
+&lt;body>
+  &lt;script>
+    // Access via global: DeckGLRasterMultiband
+    const multiband = new DeckGLRasterMultiband.Multiband({ debug: true });
+    
+    // Add styles and use as shown in Quick Start
+    multiband.addStyle('True Color', function(data) {
+      const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+      const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+      const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+      return [r, g, b, 0.8];
+    });
+    
+    multiband.setActiveStyle('True Color');
+  &lt;/script>
+&lt;/body>
+&lt;/html>
+</code></pre>
+<p><strong>CDN Options:</strong></p>
+<ul>
+<li><strong>unpkg</strong>: <code>https://unpkg.com/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js</code></li>
+<li><strong>jsDelivr</strong>: <code>https://cdn.jsdelivr.net/npm/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js</code></li>
+</ul>
+<p>The UMD bundle includes <code>gpu.js</code> and <code>proj4</code> dependencies (~554 kB, ~145 kB gzipped).</p>
+<h2 id="installation-troubleshooting%3A-gpu.js-build-issues">Installation Troubleshooting: GPU.js Build Issues</h2>
+<p><a href="https://github.com/gpujs/gpu.js">GPU.js</a> requires native compilation of the <a href="https://github.com/stackgl/headless-gl"><code>gl</code></a> package, which can fail on some systems due to missing OS dependencies or GCC version incompatibilities.</p>
+<h3 id="common-issues">Common Issues</h3>
+<p><strong>On Ubuntu/Debian:</strong></p>
+<p>The build may fail due to missing X11 development libraries and older GCC versions. Refer to <a href="https://github.com/gpujs/gpu.js/issues/770">GPU.js Issue #770</a> for detailed discussion and workarounds.</p>
+<p><strong>Required OS Dependencies (Ubuntu/Debian):</strong></p>
+<pre class="prettyprint source lang-bash"><code>sudo apt-get install -y libxi-dev gcc-11 g++-11
+</code></pre>
+<p><strong>Build with GCC-11 (Required on some systems):</strong></p>
+<p>If your system has GCC13+ (which has stricter header requirements incompatible with the gl package), force GCC-11:</p>
+<pre class="prettyprint source lang-bash"><code>CC=gcc-11 CXX=g++-11 pnpm install
+</code></pre>
+<p>Or use the provided setup script (recommended):</p>
+<pre class="prettyprint source lang-bash"><code>pnpm run setup
+</code></pre>
+<p>This script automatically runs initialization and package installation with GCC-11 constraints.</p>
+<p><strong>On macOS &amp; Windows:</strong></p>
+<p>See <a href="https://github.com/gpujs/gpu.js/issues/770">GPU.js Issue #770</a> for platform-specific solutions including Visual Studio and Xcode compatibility workarounds.</p>
+<p><strong>Alternative: Use Prebuilt Binaries</strong></p>
+<p>If native compilation fails, you can override the <code>gl</code> dependency to use prebuilt binaries:</p>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;overrides&quot;: {
+    &quot;gpu.js&quot;: {
+      &quot;gl&quot;: {
+        &quot;node-gyp&quot;: &quot;>7.0.0&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<h2 id="package-exports">Package Exports</h2>
+<p>This package exports a single symbol:</p>
+<ul>
+<li><code>Multiband</code></li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<pre class="prettyprint source lang-javascript"><code>import { Multiband } from 'deck.gl-raster-multiband';
+import { COGLayer } from '@developmentseed/deck.gl-geotiff';
+
+// 1. Create a multiband instance
+const multiband = new Multiband({ debug: true });
+
+// 2. Add custom styles
+multiband.addStyle('True Color', function(data) {
+  const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+  const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+  const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+  return [r, g, b, 0.8];
+});
+
+// 3. Set the active style
+multiband.setActiveStyle('True Color');
+
+// 4. Use with COGLayer
+const layer = new COGLayer({
+  id: 'cog-layer',
+  geotiff: 'path/to/your/geotiff.tif',
+  geoKeysParser: multiband.geoKeysParser,
+  getTileData: multiband.getTileData,
+  renderTile: multiband.renderTile
+});
+</code></pre>
+<h2 id="api-reference">API Reference</h2>
+<h3 id="constructor">Constructor</h3>
+<h4 id="new-multiband(options)"><code>new Multiband(options)</code></h4>
+<p>Creates a new Multiband instance.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>options</code> (Object, optional)</li>
+<li><code>options.debug</code> (boolean, default: <code>false</code>) - Enable/disable console logging</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const multiband = new Multiband({ debug: true });
+</code></pre>
+<h3 id="render-output-modes">Render Output Modes</h3>
+<ul>
+<li><code>raster-modules</code> (default): renders on GPU and returns <code>RasterModule[]</code> backed by a luma texture.</li>
+</ul>
+<p>Current implementation always returns <code>RasterModule[]</code> from <code>renderTile</code>.</p>
+<hr>
+<h3 id="public-properties">Public Properties</h3>
+<h4 id="multiband.geokeysparser"><code>multiband.geoKeysParser</code></h4>
+<p>Function to parse GeoTIFF projection keys. Pass this to COGLayer's <code>geoKeysParser</code> prop.</p>
+<h4 id="multiband.gettiledata"><code>multiband.getTileData</code></h4>
+<p>Function to fetch and process tile data. Pass this to COGLayer's <code>getTileData</code> prop.</p>
+<h4 id="multiband.rendertile"><code>multiband.renderTile</code></h4>
+<p>Function to render tiles using the active style. Pass this to COGLayer's <code>renderTile</code> prop.</p>
+<hr>
+<h3 id="public-methods">Public Methods</h3>
+<h4 id="addstyle(name%2C-fn%2C-options)"><code>addStyle(name, fn, options)</code></h4>
+<p>Add a new style or update an existing one. Supports two types of styles:</p>
+<p><strong>Type 1 - Direct RGBA (Traditional):</strong>
+The function returns <code>[r, g, b, a]</code> directly.</p>
+<p><strong>Type 2 - Gradient-based:</strong>
+The function returns a scalar in channel 0 (<code>[scalar, 0, 0, alpha]</code>), and <code>options.colors</code> + <code>options.stops</code> define the gradient ramp.
+The plugin builds a 256-entry LUT on CPU and applies it in a lightweight GPU lookup pass.</p>
+<p>When you call <code>addStyle(...)</code> directly, pass gradient fields in the third argument (<code>options</code>).
+When you use a style-list object (like <code>example/assets/styles.js</code>), <code>colors</code>/<code>stops</code>/<code>domain</code> are typically at the root of each style object and then mapped into <code>options</code> by your app code.</p>
+<p>Type 2 runtime details:</p>
+<ul>
+<li>LUT generation is cached per style and reused across tile renders.</li>
+<li>GPU lookup index is clamped to LUT bounds (<code>0..255</code>) for out-of-domain scalar safety.</li>
+</ul>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>name</code> (string) - Unique style name</li>
+<li><code>fn</code> (Function) - GPU.js kernel function that processes band data
+<ul>
+<li>For Type 1: Must return <code>[r, g, b, a]</code> where each value is in <code>[0, 1]</code></li>
+<li>For Type 2: Must return <code>[scalar, 0, 0, alpha]</code></li>
+</ul>
+</li>
+<li><code>options</code> (Object, optional) - Configuration for gradient-based styles (Type 2)
+<ul>
+<li><code>options.colors</code> (string[]) - Array of hex color strings (e.g., <code>['#FF0000', '#00FF00']</code>)</li>
+<li><code>options.stops</code> (number[]) - Array of stop values corresponding to colors</li>
+<li><code>options.domain</code> (number[]) - Optional scalar domain <code>[min, max]</code> for LUT mapping; must contain exactly 2 finite values with <code>max &gt; min</code></li>
+</ul>
+</li>
+</ul>
+<p><code>options.colors.length</code> must equal <code>options.stops.length</code> and at least 2 stops/colors are required.</p>
+<p>If <code>options.domain</code> is omitted, scalar values use default domain <code>[-1, 1]</code>.
+For NDVI-style indices, keeping <code>stops</code> inside <code>[-1, 1]</code> is recommended unless you set a different <code>options.domain</code>.</p>
+<p>Style-list object shape (common in <code>styles.js</code>):</p>
+<pre class="prettyprint source lang-javascript"><code>{
+  name: 'NDVI',
+  fn: function(data) { /* ... */ },
+  colors: ['#a50026', '#d73027', '#006837'],
+  stops: [-0.2, 0.0, 0.8],
+  domain: [-1.0, 1.0]
+}
+</code></pre>
+<p>Adapter example (style-list object -&gt; <code>addStyle(..., options)</code>):</p>
+<pre class="prettyprint source lang-javascript"><code>const options = {};
+if (style.colors) options.colors = style.colors;
+if (style.stops) options.stops = style.stops;
+if (style.domain) options.domain = style.domain;
+multiband.addStyle(style.name, style.fn, options);
+</code></pre>
+<p><strong>Important:</strong> The style function must be written using <strong>GPU.js kernel syntax</strong>. In the current implementation, styles are <strong>non-graphical pipeline kernels</strong>. The function cannot access external variables, use certain JavaScript features, or call non-Math standard library functions. See the <a href="#gpujs-kernel-limitations">GPU.js Kernel Limitations</a> section below for complete details.</p>
+<p><strong>Example (Type 1 - Direct RGBA):</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// Traditional approach: compute colors directly
+multiband.addStyle('True Color', function(data) {
+  const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+  const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+  const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+  return [r, g, b, 0.8];
+});
+</code></pre>
+<p><strong>Example (Type 2 - Gradient-based):</strong></p>
+<pre class="prettyprint source lang-javascript"><code>// New approach: compute scalar, define gradient separately
+multiband.addStyle('NDVI', function(data) {
+  const b4 = data[3][this.thread.y][this.thread.x]; // Red
+  const b8 = data[7][this.thread.y][this.thread.x]; // NIR
+  const denom = b8 + b4;
+  const ndvi = denom === 0 ? 0.0 : (b8 - b4) / denom;
+  const a = (b4 === 0 && b8 === 0) ? 0.0 : 0.8;
+  return [ndvi, 0, 0, a]; // scalar in channel 0
+}, {
+  colors: [
+    '#a50026', // -0.2: Deep red (bare soil)
+    '#d73027', //  0.0: Red
+    '#fdae61', //  0.2: Orange
+    '#fee08b', //  0.3: Light yellow
+    '#a6d96a', //  0.5: Light green
+    '#66bd63', //  0.6: Green
+    '#006837'  //  0.8: Deep green (dense vegetation)
+  ],
+  stops: [-0.2, 0.0, 0.2, 0.3, 0.5, 0.6, 0.8],
+  domain: [-1.0, 1.0]
+});
+</code></pre>
+<p><strong>Benefits of Gradient-based Styles:</strong></p>
+<ul>
+<li><strong>Cleaner separation</strong> of calculation and visualization logic</li>
+<li><strong>Reusable color schemes</strong> - same calculation, different palettes</li>
+<li><strong>Less code duplication</strong> for similar indices (NDVI, NDWI, EVI, etc.)</li>
+<li><strong>Stable GPU application</strong> via LUT lookup in the second pass</li>
+</ul>
+<p><strong>Common Mistakes Checklist:</strong></p>
+<ul>
+<li>Returning non-normalized color channels in Type 1 styles (all output channels must be in <code>[0, 1]</code>)</li>
+<li>Returning direct RGB from a Type 2 style instead of <code>[scalar, 0, 0, alpha]</code></li>
+<li>Passing mismatched <code>colors</code> and <code>stops</code> lengths</li>
+<li>Defining <code>stops</code> outside expected scalar domain (or forgetting to set <code>options.domain</code> for non-NDVI ranges)</li>
+<li>Using complex branching or unsupported syntax in style kernels (simplify kernel logic)</li>
+<li>Forgetting to call <code>setActiveStyle(...)</code> after adding a new style</li>
+</ul>
+<h4 id="removestyle(name)"><code>removeStyle(name)</code></h4>
+<p>Remove a style from the collection.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>name</code> (string) - Style name to remove</li>
+</ul>
+<p><strong>Note:</strong> The default style &quot;Band 1 - grayscale&quot; cannot be removed.</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>multiband.removeStyle('NDVI');
+</code></pre>
+<h4 id="setactivestyle(name%2C-target%2C-layerid)"><code>setActiveStyle(name, target, layerId)</code></h4>
+<p>Set the active rendering style.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>name</code> (string) - Style name to activate</li>
+<li><code>target</code> (Object, optional) - deck.gl instance, or map-like object exposing <code>__deck</code>; when provided, tiles are refreshed immediately</li>
+<li><code>layerId</code> (string, optional, default: <code>'cog-layer'</code>) - COGLayer id used when refreshing tiles</li>
+</ul>
+<p><strong>Note:</strong> If the style is not found, it defaults to &quot;Band 1 - grayscale&quot; and logs an error.</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>multiband.setActiveStyle('True Color');
+
+// Optionally refresh tiles immediately
+multiband.setActiveStyle('NDVI', deckInstance, 'cog-layer');
+</code></pre>
+<h4 id="getactivestyle()"><code>getActiveStyle()</code></h4>
+<p>Get the name of the currently active style.</p>
+<p><strong>Returns:</strong> <code>string</code> - Active style name</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const activeName = multiband.getActiveStyle();
+console.log('Current style:', activeName);
+</code></pre>
+<h4 id="getstyles()"><code>getStyles()</code></h4>
+<p>Get an array of all available style names.</p>
+<p><strong>Returns:</strong> <code>string[]</code> - Array of style names</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const styleNames = multiband.getStyles();
+console.log('Available styles:', styleNames);
+</code></pre>
+<h4 id="getpixelvalues(lnglat%2C-target%2C-layerid)"><code>getPixelValues(lngLat, target, layerId)</code></h4>
+<p>Sample the clicked pixel from currently loaded tiles and evaluate the active style at that pixel.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>lngLat</code> (Array|Object) - Click position as <code>[lng, lat]</code> or <code>{lng, lat}</code></li>
+<li><code>target</code> (Object) - deck instance or map-like object exposing <code>__deck</code></li>
+<li><code>layerId</code> (string, optional, default: <code>'cog-layer'</code>) - COGLayer id</li>
+</ul>
+<p><strong>Returns:</strong> <code>Object|null</code></p>
+<pre class="prettyprint source lang-javascript"><code>{
+  latlng: { lat, lng },
+  selectedstyle: 'Style Name',
+  value,   // Type 1: direct fn output, Type 2: scalar fn output (channel 0)
+  bands    // raw band array at sampled pixel
+}
+</code></pre>
+<p>Type-specific <code>value</code> behavior:</p>
+<ul>
+<li>Type 1 style: <code>value</code> is the direct output returned by style <code>fn</code>.</li>
+<li>Type 2 style: <code>value</code> is the scalar computed by style <code>fn</code> (first element of <code>[scalar, 0, 0, alpha]</code>), without applying gradient colorization.</li>
+</ul>
+<p>The method automatically resolves tile bounds CRS and transforms click coordinates to match projected tile coordinates when needed.</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>const sample = multiband.getPixelValues(event.lngLat, map, 'cog-layer');
+if (sample) {
+  console.log(`${sample.selectedstyle}:`, sample.value);
+  console.log('Bands:', sample.bands);
+}
+</code></pre>
+<h4 id="destroy()"><code>destroy()</code></h4>
+<p>Destroy the multiband instance and release GPU resources.</p>
+<p><strong>Example:</strong></p>
+<pre class="prettyprint source lang-javascript"><code>multiband.destroy();
+</code></pre>
+<hr>
+<h2 id="gpu.js-kernel-limitations">GPU.js Kernel Limitations</h2>
+<p>Style functions run as GPU kernels and have important restrictions:</p>
+<h3 id="%E2%9D%8C-cannot-access-external-variables-in-style-kernels">❌ Cannot Access External Variables in Style Kernels</h3>
+<pre class="prettyprint source lang-javascript"><code>// ❌ WRONG: Cannot access external palette array
+const colorPalette = [[1,0,0], [0,1,0], [0,0,1]];
+multiband.addStyle('Bad', function(data) {
+  const color = colorPalette[0]; // ERROR: unhandled member expression
+  return [color[0], color[1], color[2], 1];
+});
+
+// ✅ CORRECT: Inline all values
+multiband.addStyle('Good', function(data) {
+  const r = 1, g = 0, b = 0; // Inline values
+  return [r, g, b, 1];
+});
+</code></pre>
+<h3 id="%E2%9D%8C-avoid-complex-conditional-patterns-in-style-kernels">❌ Avoid Complex Conditional Patterns in Style Kernels</h3>
+<pre class="prettyprint source lang-javascript"><code>// ❌ Risky in GPU.js kernels depending on transpilation target
+if (a > b && c &lt; d) {
+  // ...
+}
+
+// ✅ Prefer simple arithmetic and ternary patterns
+const valid = (a > b) ? 1.0 : 0.0;
+</code></pre>
+<h3 id="%E2%9D%8C-limited-built-in-functions">❌ Limited Built-in Functions</h3>
+<p>GPU.js supports only basic <code>Math</code> functions: <code>abs</code>, <code>max</code>, <code>min</code>, <code>sqrt</code>, <code>pow</code>, <code>round</code>, <code>floor</code>, <code>ceil</code>, <code>sin</code>, <code>cos</code>, <code>tan</code>, etc. Complex operations must be implemented manually.</p>
+<h3 id="%E2%9C%85-best-practices">✅ Best Practices</h3>
+<ul>
+<li><strong>Type 1</strong>: Return normalized <code>[r, g, b, a]</code></li>
+<li><strong>Type 2</strong>: Return <code>[scalar, 0, 0, alpha]</code> and provide <code>colors/stops</code> in <code>addStyle</code></li>
+<li><strong>Pre-normalize constants</strong>: Store normalized values (e.g., <code>0.00003051757</code>) rather than calculating <code>1/32768</code> in the kernel</li>
+<li><strong>Keep kernel logic simple</strong>: avoid deeply nested branching</li>
+<li><strong>Keep it simple</strong>: Complex logic may fail to compile or run slowly</li>
+</ul>
+<hr>
+<h2 id="styling-quick-reference">Styling Quick Reference</h2>
+<p>Style kernels receive <code>data[band][y][x]</code> and use <code>this.thread.y</code> / <code>this.thread.x</code>.</p>
+<blockquote>
+<p><strong>Important:</strong> Band source values vary by dataset, but output channels must always be normalized to <code>[0, 1]</code>.</p>
+</blockquote>
+<h3 id="type-1%3A-direct-rgba">Type 1: Direct RGBA</h3>
+<pre class="prettyprint source lang-javascript"><code>multiband.addStyle('True Color', function(data) {
+  const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+  const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+  const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+  const a = (r === 0 && g === 0 && b === 0) ? 0.0 : 0.8;
+  return [r, g, b, a];
+});
+</code></pre>
+<h3 id="type-2%3A-scalar-%2B-gradient">Type 2: Scalar + Gradient</h3>
+<pre class="prettyprint source lang-javascript"><code>multiband.addStyle('NDVI', function(data) {
+  const b4 = data[3][this.thread.y][this.thread.x];
+  const b8 = data[7][this.thread.y][this.thread.x];
+  const denom = b8 + b4;
+  const ndvi = denom === 0 ? 0.0 : (b8 - b4) / denom;
+  const a = (b4 === 0 && b8 === 0) ? 0.0 : 0.8;
+  return [ndvi, 0, 0, a];
+}, {
+  colors: ['#a50026', '#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850', '#006837'],
+  stops: [-0.2, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+  domain: [-1.0, 1.0]
+});
+</code></pre>
+<p>If <code>domain</code> is omitted, the default scalar domain is <code>[-1, 1]</code>.</p>
+<p>For a complete working setup (MapLibre, selector wiring, style list), see:</p>
+<ul>
+<li><code>example/assets/styles.js</code></li>
+<li><code>example/assets/app.js</code></li>
+<li><code>example/assets/selector.js</code></li>
+</ul>
+<p>Selector wiring note:</p>
+<ul>
+<li><code>initSelector(...)</code> emits only <code>onStyleChange(name)</code>.</li>
+<li>Apply style once in your callback (for example, <code>setActiveStyle(name, map, 'cog-layer')</code>) to avoid duplicate refresh work.</li>
+</ul>
+<hr>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li><a href="https://github.com/developmentseed/deck.gl-raster">deck.gl-raster</a> - Raster layer support for deck.gl</li>
+<li><a href="https://github.com/gpujs/gpu.js">GPU.js</a> - GPU-accelerated JavaScript</li>
+<li><a href="https://github.com/proj4js/proj4js">proj4js</a> v2.20.4 or higher - Coordinate system transformations</li>
+</ul>
+<h2 id="browser-support">Browser Support</h2>
+<p>This library requires WebGL2 support. Most modern browsers support WebGL2, but users on older browsers or devices may experience issues.</p>
+<p>Build note: <code>vite.config.js</code> aliases <code>child_process</code>/<code>node:child_process</code> to a browser shim (<code>example/shims/child-process.js</code>) so browser bundles do not fail on Node-only optional paths in transitive dependencies.</p>
+<h2 id="license">License</h2>
+<p>This library is licensed under the <strong>GNU Affero General Public License v3.0 (AGPL-3.0-only)</strong>.</p>
+<h3 id="what-this-means">What This Means</h3>
+<p>The AGPL-3.0 is a strong copyleft license that:</p>
+<ul>
+<li>✅ <strong>Allows free use</strong> for open-source projects</li>
+<li>✅ <strong>Permits modification and distribution</strong> as long as you share your modifications under the same license</li>
+<li>⚠️ <strong>Requires source code disclosure</strong> if you use this library in a network service or web application (even without distributing it)</li>
+<li>❌ <strong>Not suitable for proprietary/closed-source commercial applications</strong> unless you're willing to open-source your entire codebase</li>
+</ul>
+<h3 id="commercial-use-limitations">Commercial Use Limitations</h3>
+<p>If you want to use this library in a <strong>commercial, closed-source application</strong> without releasing your source code, the AGPL-3.0 license does not allow this by default.</p>
+<h3 id="commercial-licensing">Commercial Licensing</h3>
+<p><strong>Interested in a commercial license?</strong> If you need to use this library in a proprietary application without the AGPL-3.0 restrictions, please contact me to discuss commercial licensing options:</p>
+<ul>
+<li><strong>GitHub</strong>: Open an issue or discussion in this repository</li>
+<li><strong>Email</strong>: Contact information available in my GitHub profile</li>
+</ul>
+<p>A commercial license would allow you to:</p>
+<ul>
+<li>Use the library in closed-source applications</li>
+<li>Modify the library without disclosing your changes</li>
+<li>Integrate it into proprietary products</li>
+</ul>
+<p>For more details, see the full <a href="LICENSE">LICENSE</a> file.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions are welcome! Please open an issue or submit a pull request.</p>
+<h2 id="example">Example</h2>
+<p><strong>Live demo: https://abelvm.github.io/deckglraster-multiband/</strong></p>
+<p>See the <a href="./example">example</a> directory for a complete working example with MapLibre GL JS.</p>
+<p>The example raster source was taken from <a href="https://github.com/geomatico/maplibre-cog-protocol">geomatico/maplibre-cog-protocol</a>.</p>
+<p>To run the example:</p>
+<pre class="prettyprint source lang-bash"><code>pnpm run setup
+pnpm run dev
+</code></pre>
+<p>Vite will print the local URL in terminal (typically <code>http://localhost:5173/</code>; if busy, it will automatically use another port such as <code>5174</code>).</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Multiband.html">Multiband</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addStyle">addStyle</a></li><li><a href="global.html#destroyLumaTextureRef">destroyLumaTextureRef</a></li><li><a href="global.html#geoKeysParser">geoKeysParser</a></li><li><a href="global.html#getActiveStyle">getActiveStyle</a></li><li><a href="global.html#getPixelValues">getPixelValues</a></li><li><a href="global.html#getStyles">getStyles</a></li><li><a href="global.html#getTileData">getTileData</a></li><li><a href="global.html#releaseBlitResources">releaseBlitResources</a></li><li><a href="global.html#removeStyle">removeStyle</a></li><li><a href="global.html#renderTile">renderTile</a></li><li><a href="global.html#setActiveStyle">setActiveStyle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Mar 08 2026 14:07:01 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -11,6 +11,7 @@ Live demo: https://abelvm.github.io/deckglraster-multiband/
   - [Install From Source (Recommended)](#install-from-source-recommended)
   - [Build Commands](#build-commands)
   - [Install As Dependency](#install-as-dependency)
+  - [Using from CDN](#using-from-cdn)
 - [Installation Troubleshooting: GPU.js Build Issues](#installation-troubleshooting-gpujs-build-issues)
   - [Common Issues](#common-issues)
 - [Package Exports](#package-exports)
@@ -57,21 +58,74 @@ pnpm run setup
 # Build the library to dist/
 pnpm run build:lib
 
-# Build the example app (depends on the library being built first)
-pnpm run build:example
+# Build the example app for local development (base path: /)
+pnpm run build:example:local
 
-# Build both library and example
+# Build the example app for deployment to GitHub Pages (base path: /deckglraster-multiband/)
+pnpm run build:example:deploy
+
+# Build both library and example (uses deploy settings for example)
 pnpm run build:all
+
+# Generate JSDoc documentation to doc/
+pnpm run build:docs
+
+# Build everything (library, example, and docs)
+pnpm run release
+
+# Deploy to GitHub Pages (builds, commits, and pushes to gh-pages branch)
+# Optional: provide custom commit message
+pnpm run deploy
+pnpm run deploy "feat: add new feature"
 
 # If you plan to build all submodule packages/examples, install its deps once
 cd deck.gl-raster && pnpm install && cd ..
 ```
+
+### Documentation
+
+Generated JSDoc documentation is available in the `doc/` folder after running `pnpm run build:docs`. Open `doc/index.html` in your browser to view the complete API documentation.
 
 ### Install As Dependency
 
 ```bash
 pnpm add deck.gl-raster-multiband
 ```
+
+### Using from CDN
+
+For quick prototyping or when you don't use a build system, load the UMD bundle from a CDN:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js"></script>
+</head>
+<body>
+  <script>
+    // Access via global: DeckGLRasterMultiband
+    const multiband = new DeckGLRasterMultiband.Multiband({ debug: true });
+    
+    // Add styles and use as shown in Quick Start
+    multiband.addStyle('True Color', function(data) {
+      const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+      const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+      const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+      return [r, g, b, 0.8];
+    });
+    
+    multiband.setActiveStyle('True Color');
+  </script>
+</body>
+</html>
+```
+
+**CDN Options:**
+- **unpkg**: `https://unpkg.com/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js`
+- **jsDelivr**: `https://cdn.jsdelivr.net/npm/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js`
+
+The UMD bundle includes `gpu.js` and `proj4` dependencies (~554 kB, ~145 kB gzipped).
 
 ## Installation Troubleshooting: GPU.js Build Issues
 
@@ -583,15 +637,7 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 See the [example](./example) directory for a complete working example with MapLibre GL JS.
 
-Sampling UI behavior in the example:
-
-- Popup shows `StyleName: value` only.
-- If `value` is RGB, a color swatch is shown next to the value.
-- Lateral panel shows `StyleName: value` and a full band table.
-
 The example raster source was taken from [geomatico/maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol).
-
-
 
 To run the example:
 

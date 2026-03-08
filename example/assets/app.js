@@ -19,14 +19,31 @@ const map = new maplibregl.Map({
     style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     center: [2.9881414786570986, 42.2606115313024],
     zoom: 10,
-    attributionControl: false
+    attributionControl: false,
+    pitch: 0,
+    bearing: 0,
+    pitchWithRotate: false,
+    dragRotate: false,
+    touchPitch: false
 });
 
 window._map = map;
 
+// Add navigation controls
+map.addControl(new maplibregl.NavigationControl({
+    showCompass: false,
+    visualizePitch: false
+}), 'bottom-right');
+
+// Add scale control
+map.addControl(new maplibregl.ScaleControl({
+    maxWidth: 100,
+    unit: 'metric'
+}), 'bottom-left');
+
 map.on('load', () => {
     const pixelPopup = new maplibregl.Popup({
-        closeButton: true,
+        closeButton: false,
         closeOnClick: false,
         maxWidth: '320px'
     });
@@ -36,14 +53,18 @@ map.on('load', () => {
 
     multiband.setActiveStyle('True Color');
 
+    let rasterBounds = null;
+
     const layer = new COGLayer({
         id: 'cog-layer',
         geotiff: new URL('./sentinel_test.tif', import.meta.url).href,
         geoKeysParser: multiband.geoKeysParser,
         getTileData: multiband.getTileData,
         renderTile: multiband.renderTile,
+        pickable: true,
         onGeoTIFFLoad: (geotiff, info) => {
             const { west, south, east, north } = info.geographicBounds;
+            rasterBounds = { west, south, east, north };
             map.fitBounds(
                 [
                     [west, south],
@@ -67,6 +88,22 @@ map.on('load', () => {
 
     // Set deck instance for multiband
     map.__deck = overlay._deck;
+
+    // Set crosshair cursor when hovering over raster
+    const mapCanvas = map.getCanvas();
+    
+    map.on('mousemove', (e) => {
+        if (!mapCanvas || !rasterBounds) return;
+        
+        const { lng, lat } = e.lngLat;
+        const { west, south, east, north } = rasterBounds;
+        
+        if (lng >= west && lng <= east && lat >= south && lat <= north) {
+            mapCanvas.style.cursor = 'crosshair';
+        } else {
+            mapCanvas.style.cursor = '';
+        }
+    });
 
     const opacitySlider = document.getElementById('overlay-opacity');
     const opacityValue = document.getElementById('overlay-opacity-value');
@@ -132,6 +169,11 @@ map.on('load', () => {
         sampleStatus.style.color = isError ? '#8f1f1f' : '#233044';
     };
 
+    const resetSamplePanel = () => {
+        setSampleStatus('Click on the raster to sample pixel values.');
+        sampleDetails.style.display = 'none';
+    };
+
     const sampleDetails = document.createElement('div');
     sampleDetails.id = 'sample-details';
     sampleDetails.style.marginTop = '4px';
@@ -195,6 +237,28 @@ map.on('load', () => {
                 .setLngLat(lngLat)
                 .setHTML('<strong>No sampled value</strong><br/>Tile not loaded at this location yet.')
                 .addTo(map);
+            return;
+        }
+
+        // Check if all bands are zero (NO DATA)
+        const allBandsZero = sample.bands.every(band => Number(band) === 0);
+        
+        if (allBandsZero) {
+            const noDataContent = `
+                <div style="font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; font-size: 12px; line-height: 1.35; white-space: nowrap;">
+                    <strong>${sample.selectedstyle}:</strong> NO DATA
+                </div>
+            `;
+            
+            pixelPopup
+                .setLngLat(lngLat)
+                .setHTML(noDataContent)
+                .addTo(map);
+            
+            sampleStatus.style.background = '#f5f7fa';
+            sampleStatus.style.color = '#233044';
+            sampleStatus.innerHTML = `<strong>${sample.selectedstyle}:</strong> NO DATA`;
+            sampleDetails.style.display = 'none';
             return;
         }
 
@@ -277,11 +341,24 @@ map.on('load', () => {
 
     // Single click handler avoids duplicate sampling events.
     map.on('click', (event) => {
-        showPixelSample(event.lngLat);
+        pixelPopup.remove();
+        
+        if (!rasterBounds) return;
+        
+        const { lng, lat } = event.lngLat;
+        const { west, south, east, north } = rasterBounds;
+        
+        if (lng >= west && lng <= east && lat >= south && lat <= north) {
+            showPixelSample(event.lngLat);
+            return;
+        }
+
+        resetSamplePanel();
     });
 
     initSelector('layers', multiband, (newStyle) => {
         pixelPopup.remove();
+        resetSamplePanel();
         multiband.setActiveStyle(newStyle, map, 'cog-layer');
     });
 });

@@ -1,4 +1,32 @@
-import { GPU } from 'gpu.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: index.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: index.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { GPU } from 'gpu.js';
 import { geoKeysParser } from './geoKeysParser.js';
 import { getTileData } from './getTileData.js';
 import { renderTile, releaseBlitResources, destroyLumaTextureRef } from './renderTile.js';
@@ -80,11 +108,11 @@ class Multiband {
       throw new Error('[Multiband] Missing luma device in getTileData options');
     }
 
-    if (device.gl && typeof device.gl.bindTexture === 'function') {
+    if (device.gl &amp;&amp; typeof device.gl.bindTexture === 'function') {
       return device.gl;
     }
 
-    if (device.handle && typeof device.handle.bindTexture === 'function') {
+    if (device.handle &amp;&amp; typeof device.handle.bindTexture === 'function') {
       return device.handle;
     }
 
@@ -173,7 +201,7 @@ class Multiband {
    */
   _ensureGpuFromDevice(device) {
     const gl = this._extractWebGLContext(device);
-    if (this._gpu && this._gpuContext === gl) {
+    if (this._gpu &amp;&amp; this._gpuContext === gl) {
       return;
     }
 
@@ -183,7 +211,7 @@ class Multiband {
     this._destroyTrackedTileTextures();
 
     const styleDefs = new Array(this._styles.length);
-    for (let i = 0; i < this._styles.length; i++) {
+    for (let i = 0; i &lt; this._styles.length; i++) {
       const style = this._styles[i];
       styleDefs[i] = {
         name: style.name,
@@ -194,7 +222,7 @@ class Multiband {
         rgbaColors: style.rgbaColors
       };
 
-      if (style && style.kernel && typeof style.kernel.destroy === 'function') {
+      if (style &amp;&amp; style.kernel &amp;&amp; typeof style.kernel.destroy === 'function') {
         style.kernel.destroy();
       }
     }
@@ -211,7 +239,7 @@ class Multiband {
     this._styles = new Array(styleDefs.length);
     let activeStyle = null;
     let defaultStyle = null;
-    for (let i = 0; i < styleDefs.length; i++) {
+    for (let i = 0; i &lt; styleDefs.length; i++) {
       const { name, fn, colors, stops, domain, rgbaColors } = styleDefs[i];
       const rebuiltStyle = {
         name,
@@ -224,10 +252,10 @@ class Multiband {
         colorLUT: null
       };
       this._styles[i] = rebuiltStyle;
-      if (!activeStyle && name === this._activeStyleName) {
+      if (!activeStyle &amp;&amp; name === this._activeStyleName) {
         activeStyle = rebuiltStyle;
       }
-      if (!defaultStyle && name === 'Band 1 - grayscale') {
+      if (!defaultStyle &amp;&amp; name === 'Band 1 - grayscale') {
         defaultStyle = rebuiltStyle;
       }
     }
@@ -253,17 +281,17 @@ class Multiband {
         continue;
       }
 
-      for (let i = 0; i < tileset.tiles.length; i++) {
+      for (let i = 0; i &lt; tileset.tiles.length; i++) {
         const tile = tileset.tiles[i];
         const candidates = [
-          tile && tile.content && tile.content.data,
-          tile && tile.content,
-          tile && tile.data && tile.data.data,
-          tile && tile.data
+          tile &amp;&amp; tile.content &amp;&amp; tile.content.data,
+          tile &amp;&amp; tile.content,
+          tile &amp;&amp; tile.data &amp;&amp; tile.data.data,
+          tile &amp;&amp; tile.data
         ];
 
-        for (let j = 0; j < candidates.length; j++) {
-          const payload = candidates[j] && candidates[j].data ? candidates[j].data : candidates[j];
+        for (let j = 0; j &lt; candidates.length; j++) {
+          const payload = candidates[j] &amp;&amp; candidates[j].data ? candidates[j].data : candidates[j];
           destroyLumaTextureRef(payload);
         }
       }
@@ -281,7 +309,7 @@ class Multiband {
       return this._activeStyleKernel;
     }
 
-    const style = (this._activeStyle && this._activeStyle.name === this._activeStyleName)
+    const style = (this._activeStyle &amp;&amp; this._activeStyle.name === this._activeStyleName)
       ? this._activeStyle
       : this._styles.find((s) => s.name === this._activeStyleName);
 
@@ -350,7 +378,7 @@ class Multiband {
     }
 
     this._styles.forEach((style) => {
-      if (style && style.kernel && typeof style.kernel.destroy === 'function') {
+      if (style &amp;&amp; style.kernel &amp;&amp; typeof style.kernel.destroy === 'function') {
         style.kernel.destroy();
       }
     });
@@ -379,3 +407,26 @@ Object.assign(Multiband.prototype, {
 });
 
 export { Multiband };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Multiband.html">Multiband</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addStyle">addStyle</a></li><li><a href="global.html#destroyLumaTextureRef">destroyLumaTextureRef</a></li><li><a href="global.html#geoKeysParser">geoKeysParser</a></li><li><a href="global.html#getActiveStyle">getActiveStyle</a></li><li><a href="global.html#getPixelValues">getPixelValues</a></li><li><a href="global.html#getStyles">getStyles</a></li><li><a href="global.html#getTileData">getTileData</a></li><li><a href="global.html#releaseBlitResources">releaseBlitResources</a></li><li><a href="global.html#removeStyle">removeStyle</a></li><li><a href="global.html#renderTile">renderTile</a></li><li><a href="global.html#setActiveStyle">setActiveStyle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Mar 08 2026 14:07:00 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -22,7 +22,7 @@ const pkgDir = (name) => {
   throw new Error(`Unable to resolve package root for ${name}`);
 };
 
-export default defineConfig(
+export default defineConfig(({ command }) =>
   isLibraryBuild
     ? {
         // Library build configuration
@@ -31,14 +31,12 @@ export default defineConfig(
             entry: path.resolve(projectDir, 'src/index.js'),
             name: 'DeckGLRasterMultiband',
             fileName: (format) => `deck.gl-raster-multiband.${format}.js`,
-            formats: ['es', 'cjs'],
+            formats: ['es', 'cjs', 'umd'],
           },
           outDir: path.resolve(projectDir, 'dist'),
           emptyOutDir: true,
           target: 'esnext',
-          rollupOptions: {
-            external: ['gpu.js', 'proj4'],
-          },
+          minify: 'esbuild',
         },
         esbuild: {
           target: 'esnext',
@@ -47,7 +45,8 @@ export default defineConfig(
     : {
         // Example app build configuration
         root: path.resolve(projectDir, 'example'),
-        base: '/deckglraster-multiband/',
+        // Use '/' for dev server, overridden by --base flag during builds
+        base: command === 'serve' ? '/' : '/deckglraster-multiband/',
         resolve: {
           dedupe: [
             '@deck.gl/core',

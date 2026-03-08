@@ -1,4 +1,32 @@
-/**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: getTileData.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: getTileData.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
  * Convert values to Float32Array
  * @private
  * @param {Array|TypedArray} values - Input values
@@ -15,7 +43,7 @@ const toFloat32Array = (values) => {
         return output;
     }
 
-    for (let i = 0; i < values.length; i++) {
+    for (let i = 0; i &lt; values.length; i++) {
         const v = Number(values[i]);
         output[i] = Number.isFinite(v) ? v : 0;
     }
@@ -35,28 +63,28 @@ const toFloat32Array = (values) => {
  */
 const toBandMajorFloat32 = (srcData, planeSize, bandCount, layout) => {
     if (
-        srcData instanceof Float32Array &&
-        srcData.length === planeSize * bandCount &&
+        srcData instanceof Float32Array &amp;&amp;
+        srcData.length === planeSize * bandCount &amp;&amp;
         layout === 'band-separate'
     ) {
         return srcData;
     }
 
     if (
-        ArrayBuffer.isView(srcData) &&
-        srcData.length === planeSize * bandCount &&
+        ArrayBuffer.isView(srcData) &amp;&amp;
+        srcData.length === planeSize * bandCount &amp;&amp;
         layout === 'band-separate'
     ) {
         return toFloat32Array(srcData);
     }
 
     if (Array.isArray(srcData)) {
-        if (bandCount === 1 && srcData[0]) {
+        if (bandCount === 1 &amp;&amp; srcData[0]) {
             return toFloat32Array(srcData[0]);
         }
 
         const dest = new Float32Array(planeSize * bandCount);
-        for (let b = 0; b < bandCount; b++) {
+        for (let b = 0; b &lt; bandCount; b++) {
             const band = srcData[b];
             if (!band) {
                 continue;
@@ -68,7 +96,7 @@ const toBandMajorFloat32 = (srcData, planeSize, bandCount, layout) => {
             } else if (ArrayBuffer.isView(band)) {
                 dest.set(band, base);
             } else {
-                for (let i = 0; i < planeSize; i++) {
+                for (let i = 0; i &lt; planeSize; i++) {
                     const v = Number(band[i]);
                     dest[base + i] = Number.isFinite(v) ? v : 0;
                 }
@@ -85,10 +113,10 @@ const toBandMajorFloat32 = (srcData, planeSize, bandCount, layout) => {
     const dest = new Float32Array(planeSize * bandCount);
     const isTypedInterleaved = ArrayBuffer.isView(interleaved);
 
-    for (let b = 0; b < bandCount; b++) {
+    for (let b = 0; b &lt; bandCount; b++) {
         const destBase = b * planeSize;
         let srcIndex = b;
-        for (let i = 0; i < planeSize; i++) {
+        for (let i = 0; i &lt; planeSize; i++) {
             const v = interleaved[srcIndex];
             if (isTypedInterleaved) {
                 dest[destBase + i] = v;
@@ -140,7 +168,7 @@ const buildBandDataFromRaster = (array) => {
  * @param {number} options.y - Tile Y coordinate
  * @param {AbortSignal} [options.signal] - Abort signal for fetch cancellation
  * @param {Object} options.device - WebGL device/context
- * @returns {Promise<Object>} Promise resolving to tile data
+ * @returns {Promise&lt;Object>} Promise resolving to tile data
  * @property {Float32Array} data - Band-major float32 raster data
  * @property {number} width - Tile width in pixels
  * @property {number} height - Tile height in pixels
@@ -164,3 +192,26 @@ const getTileData = async (image, options = {}) => {
 };
 
 export { getTileData };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Multiband.html">Multiband</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addStyle">addStyle</a></li><li><a href="global.html#destroyLumaTextureRef">destroyLumaTextureRef</a></li><li><a href="global.html#geoKeysParser">geoKeysParser</a></li><li><a href="global.html#getActiveStyle">getActiveStyle</a></li><li><a href="global.html#getPixelValues">getPixelValues</a></li><li><a href="global.html#getStyles">getStyles</a></li><li><a href="global.html#getTileData">getTileData</a></li><li><a href="global.html#releaseBlitResources">releaseBlitResources</a></li><li><a href="global.html#removeStyle">removeStyle</a></li><li><a href="global.html#renderTile">renderTile</a></li><li><a href="global.html#setActiveStyle">setActiveStyle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sun Mar 08 2026 14:07:00 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
