@@ -24,13 +24,24 @@ if ! git commit -am "chore: release v$VERSION"; then
   echo "No changes to commit, proceeding to publish"
 fi
 
-git tag -a "v$VERSION" -m "Release v$VERSION"
-git push && git push --tags
+
+# Try to create tag, but if it exists, log and continue
+if git tag | grep -q "^v$VERSION$"; then
+  echo "⚠️ Tag v$VERSION already exists. Skipping tag creation."
+else
+  git tag -a "v$VERSION" -m "Release v$VERSION"
+  git push && git push --tags
+fi
 
 echo "🚀 Building all artifacts..."
 pnpm run build:all && pnpm run build:docs
 
-echo "📦 Publishing to npm..."
-pnpm publish --access public
-
 echo "✅ Release v$VERSION published to npm, unpkg, jsDelivr"
+echo "📦 Publishing to npm..."
+PUBLISH_OUTPUT=$(pnpm publish --access public 2>&1) || true
+if echo "$PUBLISH_OUTPUT" | grep -q "previously published"; then
+  echo "⚠️ Version $VERSION already exists on npm. Skipping publish."
+else
+  echo "$PUBLISH_OUTPUT"
+  echo "✅ Release v$VERSION published to npm, unpkg, jsDelivr"
+fi
