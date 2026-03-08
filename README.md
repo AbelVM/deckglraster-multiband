@@ -84,7 +84,9 @@ cd deck.gl-raster && pnpm install && cd ..
 
 ### Documentation
 
-Generated JSDoc documentation is available in the [`doc/`](doc/) folder after running `pnpm run build:docs`. Open [`doc/index.html`](doc/index.html) in your browser to view the complete API documentation.
+Generated JSDoc documentation is available:
+- **Online**: [https://abelvm.github.io/deckglraster-multiband/doc/](https://abelvm.github.io/deckglraster-multiband/doc/)
+- **Local**: In the [`doc/`](doc/) folder after running `pnpm run build:docs`. Open [`doc/index.html`](doc/index.html) to view the complete API documentation.
 
 ### Install As Dependency
 

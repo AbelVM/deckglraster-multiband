@@ -11,7 +11,28 @@ echo "📝 Commit message: $COMMIT_MSG"
 echo "📦 Building all artifacts..."
 pnpm run release
 
-# Step 2: Copy dist-deploy to temp folder BEFORE committing (since dist-deploy is gitignored)
+# Step 2: Generate llms.txt
+echo "📝 Generating llms.txt..."
+node scripts/generate-llms-txt.mjs
+
+# Step 3: Copy doc folder and llms.txt to dist-deploy
+echo "📚 Copying documentation to deployment folder..."
+if [ -d "doc" ]; then
+  mkdir -p example/dist-deploy/doc
+  cp -r doc/* example/dist-deploy/doc/
+  echo "✅ Documentation copied to example/dist-deploy/doc/"
+else
+  echo "⚠️  Warning: doc folder not found"
+fi
+
+if [ -f "llms.txt" ]; then
+  cp llms.txt example/dist-deploy/
+  echo "✅ llms.txt copied to example/dist-deploy/"
+else
+  echo "⚠️  Warning: llms.txt not found"
+fi
+
+# Step 4: Prepare gh-pages deployment
 echo "🌐 Preparing gh-pages deployment..."
 
 # Create temporary directory
@@ -29,13 +50,13 @@ fi
 echo "Copying example/dist-deploy to temporary directory..."
 cp -r example/dist-deploy/* "$TMP_DIR/"
 
-# Step 3: Commit and push to main
+# Step 5: Commit and push to main
 echo "💾 Committing and pushing to main..."
 git add .
 git commit -m "$COMMIT_MSG" || echo "No changes to commit"
 git push origin main
 
-# Step 4: Deploy to gh-pages
+# Step 6: Deploy to gh-pages
 echo "🚀 Deploying to gh-pages..."
 
 # Get the repository URL

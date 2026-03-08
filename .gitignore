@@ -82,6 +82,8 @@ out
 .nuxt
 dist
 dist-*
+doc
+llms.txt
 
 # Gatsby files
 .cache/
