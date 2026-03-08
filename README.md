@@ -84,7 +84,7 @@ cd deck.gl-raster && pnpm install && cd ..
 
 ### Documentation
 
-Generated JSDoc documentation is available in the `doc/` folder after running `pnpm run build:docs`. Open `doc/index.html` in your browser to view the complete API documentation.
+Generated JSDoc documentation is available in the [`doc/`](doc/) folder after running `pnpm run build:docs`. Open [`doc/index.html`](doc/index.html) in your browser to view the complete API documentation.
 
 ### Install As Dependency
 
