@@ -1,3 +1,7 @@
+[![npm version](https://img.shields.io/npm/v/deck.gl-raster-multiband.svg?style=flat-square)](https://www.npmjs.com/package/deck.gl-raster-multiband)
+[![unpkg](https://img.shields.io/badge/unpkg-deck.gl--raster--multiband-blue?logo=unpkg&style=flat-square)](https://unpkg.com/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js)
+[![jsDelivr](https://img.shields.io/badge/jsDelivr-deck.gl--raster--multiband-orange?logo=jsDelivr&style=flat-square)](https://cdn.jsdelivr.net/npm/deck.gl-raster-multiband/dist/deck.gl-raster-multiband.umd.js)
+
 # deck.gl-raster-multiband
 
 A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for [deck.gl-raster](https://github.com/developmentseed/deck.gl-raster) using [GPU.js](https://github.com/gpujs/gpu.js).
@@ -349,8 +353,8 @@ multiband.addStyle('NDVI', function(data) {
   colors: [
     '#a50026', // -0.2: Deep red (bare soil)
     '#d73027', //  0.0: Red
-    '#fdae61', //  0.2: Orange
-    '#fee08b', //  0.3: Light yellow
+    '#f46d43', //  0.2: Orange
+    '#fdae61', //  0.3: Light yellow
     '#a6d96a', //  0.5: Light green
     '#66bd63', //  0.6: Green
     '#006837'  //  0.8: Deep green (dense vegetation)
