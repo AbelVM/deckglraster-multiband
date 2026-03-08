@@ -49,7 +49,7 @@ nav::-webkit-scrollbar-thumb:hover {
 nav h2 {
     margin-top: 0;
     padding-bottom: 10px;
-    border-bottom: 2px solid #0066cc;
+    border-bottom: 2px solid #f20084;
 }
 
 nav h3 {
@@ -80,9 +80,8 @@ nav a {
     transition: background-color 0.2s, color 0.2s;
 }
 
-nav a:hover {
+a:hover {
     background-color: #f0f0f0;
-    color: #0066cc;
 }
 
 /* Style pre elements */
@@ -111,7 +110,7 @@ code {
         border-right: none;
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     }
-    
+
     #main {
         margin-left: 0 !important;
         max-width: 100%;
@@ -133,4 +132,20 @@ footer {
 /* Clear fix positioning */
 br.clear {
     display: none;
+}
+
+a,
+a:visited,
+a:active {
+    color: #1b8a8a;
+    text-decoration: none !important;
+}
+
+a:hover{
+    color: #f20084 !important;
+    text-decoration: none !important;
+}
+
+nav h3{
+    color: #1b8a8a !important;
 }
