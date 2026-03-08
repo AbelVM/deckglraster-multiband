@@ -13,8 +13,16 @@ fi
 
 echo "🔖 Using package.json version $VERSION"
 
-git add .
-git commit -am "chore: release v$VERSION"
+# Set npm token from .env
+NPM_TOKEN=$(grep NPM_TOKEN .env | cut -d '=' -f2)
+if [ -n "$NPM_TOKEN" ]; then
+  npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+fi
+
+# Commit changes if any
+if ! git commit -am "chore: release v$VERSION"; then
+  echo "No changes to commit, proceeding to publish"
+fi
 
 git tag -a "v$VERSION" -m "Release v$VERSION"
 git push && git push --tags
