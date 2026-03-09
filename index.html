@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>deck.gl-raster-multiband Example</title>
+    <link rel='icon' href='/deckglraster-multiband/favicon.ico' type='image/x-icon' />
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js'></script>
+  <script type="module" crossorigin src="/deckglraster-multiband/assets/index-BmHJJNzs.js"></script>
+  <link rel="stylesheet" crossorigin href="/deckglraster-multiband/assets/index-DqqVjAhy.css">
+</head>
+
+<body>
+    <!-- controls-panel moved below the map so it can live outside the map on mobile -->
+    <a
+        class="github-link"
+        href="https://github.com/AbelVM/deckglraster-multiband"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open GitHub repository"
+        title="View repository on GitHub"
+    >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+    </a>
+    <div id='map'></div>
+
+    <section class="controls-panel" aria-label="Overlay controls">
+        <label class="control-group" for="layers">
+            <span>Style</span>
+            <select id="layers"></select>
+        </label>
+        <label class="control-group" for="overlay-opacity">
+            <span>Opacity</span>
+            <div class="slider-row">
+                <input id="overlay-opacity" type="range" min="0" max="100" step="1" value="100" />
+                <output id="overlay-opacity-value" for="overlay-opacity">100%</output>
+            </div>
+        </label>
+        <div class="info-callout">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <text x="7" y="10.5" text-anchor="middle" font-size="9" font-weight="600" fill="currentColor">i</text>
+            </svg>
+            <span>No-data areas remain interactive even when not visible</span>
+        </div>
+    </section>
+</body>
+
+</html>

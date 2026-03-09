@@ -1,0 +1,117 @@
+# deck.gl-raster-multiband
+
+> A JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for deck.gl-raster
+
+## Overview
+
+deck.gl-raster-multiband is a JavaScript plugin that enables GPU-accelerated multiband raster algebra and styling for deck.gl-raster using GPU.js.
+
+- **Version**: 1.0.0
+- **License**: AGPL-3.0-only
+- **Author**: Abel Vázquez Montoro
+- **Repository**: https://github.com/AbelVM/deckglraster-multiband
+- **Live Demo**: https://abelvm.github.io/deckglraster-multiband/
+- **Documentation**: https://abelvm.github.io/deckglraster-multiband/doc/
+
+## Features
+
+- 🚀 GPU-accelerated multiband raster algebra and styling using GPU.js
+- 🎨 Flexible style system for custom band combinations
+- 🔄 Dynamic style switching at runtime
+- 🔌 Easy integration with deck.gl COGLayer
+- 🧪 Pixel sampling API with style-aware value evaluation (`getPixelValues`)
+
+
+## Installation
+
+```bash
+npm install deck.gl-raster-multiband
+# or
+pnpm add deck.gl-raster-multiband
+# or
+yarn add deck.gl-raster-multiband
+```
+
+## Quick Start
+
+```javascript
+import { Multiband } from 'deck.gl-raster-multiband';
+import { COGLayer } from '@developmentseed/deck.gl-geotiff';
+
+// 1. Create a multiband instance
+const multiband = new Multiband({ debug: true });
+
+// 2. Add custom styles
+multiband.addStyle('True Color', function(data) {
+  const r = Math.max(0, Math.min(1, data[3][this.thread.y][this.thread.x] * 0.00003051757));
+  const g = Math.max(0, Math.min(1, data[2][this.thread.y][this.thread.x] * 0.00003051757));
+  const b = Math.max(0, Math.min(1, data[1][this.thread.y][this.thread.x] * 0.00003051757));
+  return [r, g, b, 0.8];
+});
+
+// 3. Set the active style
+multiband.setActiveStyle('True Color');
+
+// 4. Use with COGLayer
+const layer = new COGLayer({
+  id: 'cog-layer',
+  geotiff: 'path/to/your/geotiff.tif',
+  geoKeysParser: multiband.geoKeysParser,
+  getTileData: multiband.getTileData,
+  renderTile: multiband.renderTile
+});
+```
+
+
+## API Documentation
+
+Complete API documentation is available at:
+- **JSDoc**: https://abelvm.github.io/deckglraster-multiband/doc/
+- **Main Class**: Multiband
+- **Key Methods**: addStyle, setActiveStyle, getPixelValues, renderTile
+
+## Key Concepts
+
+### Multiband Raster Processing
+This library processes multiband raster data (e.g., satellite imagery) using GPU.js for hardware acceleration. It compiles JavaScript functions into WebGL shaders for efficient pixel-level operations.
+
+### Style System
+Styles are GPU kernels that define how band data is transformed into RGBA colors:
+- **Type 1 (Direct RGBA)**: Function returns [r, g, b, a] directly
+- **Type 2 (Gradient)**: Function returns scalar value, colors are mapped via LUT
+
+### Integration with deck.gl
+Seamlessly integrates with deck.gl's COGLayer for Cloud Optimized GeoTIFF rendering.
+
+## Source Files
+
+- `src/index.js` - Main Multiband class
+- `src/stylesManager.js` - Style management API
+- `src/renderTile.js` - GPU kernel execution and WebGL rendering
+- `src/getTileData.js` - GeoTIFF tile data loading
+- `src/getPixelValues.js` - Pixel sampling and value extraction
+- `src/geoKeysParser.js` - Projection/CRS parsing
+
+## Dependencies
+
+- **gpu.js** (^2.16.0): GPU-accelerated computing
+- **proj4** (>=2.20.4): Coordinate system transformations
+- **@deck.gl/core**, **@deck.gl/geo-layers** (^9.2.11): Peer dependencies for deck.gl integration
+
+## Browser Support
+
+Requires WebGL2 support (modern browsers: Chrome 56+, Firefox 51+, Safari 15+, Edge 79+).
+
+## Contributing
+
+Contributions are welcome! This project uses:
+- **Build**: Vite 6.0.0
+- **Package Manager**: pnpm
+- **License**: AGPL-3.0-only
+
+## Links
+
+- GitHub: https://github.com/AbelVM/deckglraster-multiband
+- Live Demo: https://abelvm.github.io/deckglraster-multiband/
+- Documentation: https://abelvm.github.io/deckglraster-multiband/doc/
+- npm: https://www.npmjs.com/package/deck.gl-raster-multiband

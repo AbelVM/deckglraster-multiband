@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>deck.gl-raster-multiband Source: renderTile.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-custom.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: renderTile.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { input } from "gpu.js";
+
+const CreateTexture = {
+    name: "create-texture-unorm",
+    inject: {
+        "fs:#decl": "uniform sampler2D textureName;",
+        "fs:DECKGL_FILTER_COLOR": "color = texture(textureName, geometry.uv);",
+    },
+    getUniforms: (props = {}) => ({
+        textureName: props.textureName,
+    }),
+};
+
+/**
+ * Get WebGL context from luma device
+ * @private
+ * @param {Object} device - luma device object
+ * @returns {WebGL2RenderingContext|WebGLRenderingContext} WebGL context
+ * @throws {Error} If unable to resolve WebGL context
+ */
+const getDeviceGl = (device) => {
+    if (device &amp;&amp; device.gl &amp;&amp; typeof device.gl.bindTexture === "function") {
+        return device.gl;
+    }
+    if (device &amp;&amp; device.handle &amp;&amp; typeof device.handle.bindTexture === "function") {
+        return device.handle;
+    }
+    throw new Error("[renderTile] Unable to resolve WebGL context from luma device");
+};
+
+const BLIT_RESOURCES = new WeakMap();
+const SOURCE_FORMAT_CACHE = new WeakMap();
+const LUT_TEXTURE_CACHE = new WeakMap();
+
+/**
+ * Destroy luma texture reference from tile data result
+ * @param {Object} tileDataResult - Tile data with _lumaTexture property
+ * @returns {void}
+ * @public
+ */
+const destroyLumaTextureRef = (tileDataResult) => {
+    if (!tileDataResult) {
+        return;
+    }
+
+    const texture = tileDataResult._lumaTexture;
+    if (texture &amp;&amp; typeof texture.destroy === "function" &amp;&amp; !texture.destroyed) {
+        texture.destroy();
+    }
+
+    tileDataResult._lumaTexture = null;
+    tileDataResult._lumaTextureFormat = null;
+};
+
+/**
+ * Attach texture disposal hooks to tile data result
+ * Ensures luma textures are properly cleaned up when tiles are disposed
+ * @private
+ * @param {Object} tileDataResult - Tile data to attach disposer to
+ * @returns {void}
+ */
+const attachTileTextureDisposer = (tileDataResult) => {
+    if (!tileDataResult || tileDataResult._lumaTextureDisposerAttached) {
+        return;
+    }
+
+    const previousDispose = typeof tileDataResult.dispose === "function"
+        ? tileDataResult.dispose.bind(tileDataResult)
+        : null;
+    const previousDestroy = typeof tileDataResult.destroy === "function"
+        ? tileDataResult.destroy.bind(tileDataResult)
+        : null;
+
+    tileDataResult.dispose = () => {
+        destroyLumaTextureRef(tileDataResult);
+        if (previousDispose) {
+            previousDispose();
+        }
+    };
+
+    tileDataResult.destroy = () => {
+        destroyLumaTextureRef(tileDataResult);
+        if (previousDestroy) {
+            previousDestroy();
+        }
+    };
+
+    tileDataResult._lumaTextureDisposerAttached = true;
+};
+
+/**
+ * Compile WebGL shader
+ * @private
+ * @param {WebGL2RenderingContext} gl - WebGL context
+ * @param {number} type - Shader type (gl.VERTEX_SHADER or gl.FRAGMENT_SHADER)
+ * @param {string} source - GLSL shader source code
+ * @returns {WebGLShader} Compiled shader
+ * @throws {Error} If shader compilation fails
+ */
+const compileShader = (gl, type, source) => {
+    const shader = gl.createShader(type);
+    if (!shader) {
+        throw new Error("[renderTile] Failed to create shader for texture blit");
+    }
+
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const log = gl.getShaderInfoLog(shader) || "unknown shader compile error";
+        gl.deleteShader(shader);
+        throw new Error(`[renderTile] Texture blit shader compile failed: ${log}`);
+    }
+
+    return shader;
+};
+
+/**
+ * Get or create shader resources for texture blitting with optional LUT mapping
+ * Resources are cached per WebGL context
+ * @private
+ * @param {WebGL2RenderingContext} gl - WebGL context
+ * @returns {Object} Blit resources (program, vao, framebuffer, uniforms)
+ */
+const getBlitResources = (gl) => {
+    let resources = BLIT_RESOURCES.get(gl);
+    if (resources) {
+        return resources;
+    }
+
+        const vertexSource = `#version 300 es
+out vec2 vUv;
+void main() {
+    vec2 pos;
+    vec2 uv;
+
+    if (gl_VertexID == 0) {
+        pos = vec2(-1.0, -1.0);
+        uv = vec2(0.0, 0.0);
+    } else if (gl_VertexID == 1) {
+        pos = vec2(1.0, -1.0);
+        uv = vec2(1.0, 0.0);
+    } else if (gl_VertexID == 2) {
+        pos = vec2(-1.0, 1.0);
+        uv = vec2(0.0, 1.0);
+    } else {
+        pos = vec2(1.0, 1.0);
+        uv = vec2(1.0, 1.0);
+    }
+
+    vUv = uv;
+    gl_Position = vec4(pos, 0.0, 1.0);
+}`;
+
+        const fragmentSource = `#version 300 es
+precision highp float;
+uniform sampler2D uSource;
+uniform sampler2D uColorLUT;
+uniform int uUseLut;
+uniform float uDomainMin;
+uniform float uDomainMax;
+in vec2 vUv;
+out vec4 outColor;
+void main() {
+    // Use exact texel fetch to avoid edge sampling artifacts on some Chrome/WebGL paths.
+    ivec2 texSize = textureSize(uSource, 0);
+    ivec2 texelCoord = ivec2(gl_FragCoord.xy);
+    texelCoord = clamp(texelCoord, ivec2(0), texSize - ivec2(1));
+    vec4 src = texelFetch(uSource, texelCoord, 0);
+
+    if (uUseLut == 1) {
+        float domainRange = max(0.0000001, uDomainMax - uDomainMin);
+        float normalized = clamp((src.r - uDomainMin) / domainRange, 0.0, 1.0);
+        int idx = int(floor(normalized * 255.0));
+        vec4 lutColor = texelFetch(uColorLUT, ivec2(idx, 0), 0);
+        outColor = vec4(lutColor.rgb, lutColor.a * src.a);
+    } else {
+        outColor = src;
+    }
+}`;
+
+    const vs = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
+    const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+
+    const program = gl.createProgram();
+    if (!program) {
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        throw new Error("[renderTile] Failed to create shader program for texture blit");
+    }
+
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        const log = gl.getProgramInfoLog(program) || "unknown program link error";
+        gl.deleteProgram(program);
+        throw new Error(`[renderTile] Texture blit program link failed: ${log}`);
+    }
+
+    const vao = gl.createVertexArray();
+    if (!vao) {
+        gl.deleteProgram(program);
+        throw new Error("[renderTile] Failed to create VAO for texture blit");
+    }
+
+    const framebuffer = gl.createFramebuffer();
+    if (!framebuffer) {
+        gl.deleteVertexArray(vao);
+        gl.deleteProgram(program);
+        throw new Error("[renderTile] Failed to create framebuffer for texture blit");
+    }
+
+    const sourceUniform = gl.getUniformLocation(program, "uSource");
+    const colorLUTUniform = gl.getUniformLocation(program, "uColorLUT");
+    const useLutUniform = gl.getUniformLocation(program, "uUseLut");
+    const domainMinUniform = gl.getUniformLocation(program, "uDomainMin");
+    const domainMaxUniform = gl.getUniformLocation(program, "uDomainMax");
+    resources = {
+        program,
+        vao,
+        framebuffer,
+        sourceUniform,
+        colorLUTUniform,
+        useLutUniform,
+        domainMinUniform,
+        domainMaxUniform,
+    };
+    BLIT_RESOURCES.set(gl, resources);
+    return resources;
+};
+
+/**
+ * Release all cached blit resources for a WebGL context
+ * Deletes framebuffers, VAOs, programs, and LUT textures
+ * @param {WebGL2RenderingContext} gl - WebGL context
+ * @returns {void}
+ * @public
+ */
+const releaseBlitResources = (gl) => {
+    if (!gl) {
+        return;
+    }
+
+    const resources = BLIT_RESOURCES.get(gl);
+    if (resources) {
+        if (resources.framebuffer) {
+            gl.deleteFramebuffer(resources.framebuffer);
+        }
+        if (resources.vao) {
+            gl.deleteVertexArray(resources.vao);
+        }
+        if (resources.program) {
+            gl.deleteProgram(resources.program);
+        }
+        BLIT_RESOURCES.delete(gl);
+    }
+
+    SOURCE_FORMAT_CACHE.delete(gl);
+
+    const lutCache = LUT_TEXTURE_CACHE.get(gl);
+    if (lutCache) {
+        for (const texture of lutCache.values()) {
+            gl.deleteTexture(texture);
+        }
+        LUT_TEXTURE_CACHE.delete(gl);
+    }
+};
+
+/**
+ * Get or create a cached LUT texture for the given colorLUT array
+ * Creates a 256x1 RGBA texture from the color lookup table
+ * Cached per WebGL context and colorLUT array reference
+ * @private
+ * @param {WebGL2RenderingContext} gl - WebGL context
+ * @param {Array&lt;Array&lt;number>>} colorLUT - 256x4 color LUT (normalized RGBA)
+ * @returns {WebGLTexture} LUT texture
+ * @throws {Error} If texture creation fails
+ */
+const ensureLutTexture = (gl, colorLUT) => {
+    let lutCache = LUT_TEXTURE_CACHE.get(gl);
+    if (!lutCache) {
+        lutCache = new Map();
+        LUT_TEXTURE_CACHE.set(gl, lutCache);
+    }
+
+    const cached = lutCache.get(colorLUT);
+    if (cached) {
+        return cached;
+    }
+
+    const lutData = new Uint8Array(256 * 4);
+    for (let i = 0; i &lt; 256; i++) {
+        const c = colorLUT[i] || [0, 0, 0, 0];
+        lutData[i * 4 + 0] = Math.max(0, Math.min(255, Math.round((Number(c[0]) || 0) * 255)));
+        lutData[i * 4 + 1] = Math.max(0, Math.min(255, Math.round((Number(c[1]) || 0) * 255)));
+        lutData[i * 4 + 2] = Math.max(0, Math.min(255, Math.round((Number(c[2]) || 0) * 255)));
+        lutData[i * 4 + 3] = Math.max(0, Math.min(255, Math.round((Number(c[3]) || 0) * 255)));
+    }
+
+    const texture = gl.createTexture();
+    if (!texture) {
+        throw new Error("[renderTile] Failed to create LUT texture");
+    }
+
+    const previousActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+    const previousTexture2D = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    const previousUnpackAlignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        256,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        lutData
+    );
+
+    gl.activeTexture(previousActiveTexture);
+    gl.bindTexture(gl.TEXTURE_2D, previousTexture2D);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, previousUnpackAlignment);
+
+    lutCache.set(colorLUT, texture);
+    return texture;
+};
+
+const detectSourceTextureFormat = (gl, sourceTexture) => {
+    const previousFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const probeFramebuffer = gl.createFramebuffer();
+    if (!probeFramebuffer) {
+        return "rgba8unorm";
+    }
+
+    let detectedFormat = "rgba8unorm";
+    try {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, probeFramebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
+
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            return "rgba8unorm";
+        }
+
+        const componentType = gl.getFramebufferAttachmentParameter(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE
+        );
+
+        if (componentType === gl.FLOAT) {
+            detectedFormat = "rgba16float";
+        } else {
+            detectedFormat = "rgba8unorm";
+        }
+    } catch (_error) {
+        detectedFormat = "rgba8unorm";
+    } finally {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, previousFramebuffer);
+        gl.deleteFramebuffer(probeFramebuffer);
+    }
+
+    return detectedFormat;
+};
+
+const captureGLState = (gl) => ({
+    viewport: gl.getParameter(gl.VIEWPORT),
+    scissorBox: gl.getParameter(gl.SCISSOR_BOX),
+    depthTest: gl.isEnabled(gl.DEPTH_TEST),
+    stencilTest: gl.isEnabled(gl.STENCIL_TEST),
+    scissorTest: gl.isEnabled(gl.SCISSOR_TEST),
+    cullFace: gl.isEnabled(gl.CULL_FACE),
+    blend: gl.isEnabled(gl.BLEND),
+    colorMask: gl.getParameter(gl.COLOR_WRITEMASK),
+});
+const restoreGLState = (gl, state) => {
+    if (state.depthTest) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
+    if (state.stencilTest) gl.enable(gl.STENCIL_TEST); else gl.disable(gl.STENCIL_TEST);
+    if (state.scissorTest) gl.enable(gl.SCISSOR_TEST); else gl.disable(gl.SCISSOR_TEST);
+    if (state.cullFace) gl.enable(gl.CULL_FACE); else gl.disable(gl.CULL_FACE);
+    if (state.blend) gl.enable(gl.BLEND); else gl.disable(gl.BLEND);
+};
+
+const ensureLumaTexture = (tileDataResult, width, height, format) => {
+    const device = tileDataResult &amp;&amp; tileDataResult.device;
+    if (!device || typeof device.createTexture !== "function") {
+        throw new Error("[renderTile] Missing luma device; cannot build RasterModule texture");
+    }
+
+    attachTileTextureDisposer(tileDataResult);
+
+    let texture = tileDataResult._lumaTexture || null;
+    const needsNewTexture =
+        !texture ||
+        texture.destroyed ||
+        texture.width !== width ||
+        texture.height !== height ||
+        tileDataResult._lumaTextureFormat !== format;
+
+    if (needsNewTexture) {
+        if (texture &amp;&amp; typeof texture.destroy === "function" &amp;&amp; !texture.destroyed) {
+            texture.destroy();
+        }
+        texture = device.createTexture({
+            format,
+            width,
+            height,
+            mipmaps: false,
+            sampler: {
+                minFilter: "nearest",
+                magFilter: "nearest",
+                addressModeU: "clamp-to-edge",
+                addressModeV: "clamp-to-edge",
+            },
+        });
+        tileDataResult._lumaTexture = texture;
+        tileDataResult._lumaTextureFormat = format;
+    }
+
+    return texture;
+};
+
+const copyGpuTextureToLumaTexture = (
+    device,
+    sourceTexture,
+    targetTexture,
+    width,
+    height,
+    debugValidation = false,
+    colorMapping = null
+) => {
+    const gl = getDeviceGl(device);
+    const blit = getBlitResources(gl);
+
+    const previousFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const previousReadFramebuffer = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+    const previousDrawFramebuffer = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+    const previousProgram = gl.getParameter(gl.CURRENT_PROGRAM);
+    const previousVao = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
+    const previousActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+    const previousTexture2D = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    const previousTextureBinding1 = (() => {
+        gl.activeTexture(gl.TEXTURE1);
+        const binding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+        gl.activeTexture(previousActiveTexture);
+        return binding;
+    })();
+    const previousViewport = gl.getParameter(gl.VIEWPORT);
+    const previousScissorBox = gl.getParameter(gl.SCISSOR_BOX);
+    const previousDepthTest = gl.isEnabled(gl.DEPTH_TEST);
+    const previousStencilTest = gl.isEnabled(gl.STENCIL_TEST);
+    const previousScissorTest = gl.isEnabled(gl.SCISSOR_TEST);
+    const previousCullFace = gl.isEnabled(gl.CULL_FACE);
+    const previousBlend = gl.isEnabled(gl.BLEND);
+    const previousColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
+
+    try {
+        // Isolate blit draw from deck/luma state to avoid silent clipping/discard.
+        gl.disable(gl.DEPTH_TEST);
+        gl.disable(gl.STENCIL_TEST);
+        gl.disable(gl.SCISSOR_TEST);
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.BLEND);
+        gl.colorMask(true, true, true, true);
+
+        // Shader path: explicit texelFetch copy avoids browser/driver-specific blit anomalies.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, blit.framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture.handle, 0);
+
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            throw new Error(`[renderTile] Incomplete framebuffer during texture blit (status: ${status})`);
+        }
+
+        gl.viewport(0, 0, width, height);
+        gl.useProgram(blit.program);
+        gl.bindVertexArray(blit.vao);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+        // Guarantee source texture completeness for sampling in the blit shader.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.uniform1i(blit.sourceUniform, 0);
+
+        const useLut = Boolean(colorMapping &amp;&amp; colorMapping.colorLUT &amp;&amp; Array.isArray(colorMapping.colorLUT));
+        gl.uniform1i(blit.useLutUniform, useLut ? 1 : 0);
+
+        if (useLut) {
+            const lutTexture = ensureLutTexture(gl, colorMapping.colorLUT);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, lutTexture);
+            gl.uniform1i(blit.colorLUTUniform, 1);
+
+            const domainMin = Number(colorMapping.domainMin);
+            const domainMax = Number(colorMapping.domainMax);
+            gl.uniform1f(blit.domainMinUniform, Number.isFinite(domainMin) ? domainMin : -1.0);
+            gl.uniform1f(blit.domainMaxUniform, Number.isFinite(domainMax) ? domainMax : 1.0);
+
+            gl.activeTexture(gl.TEXTURE0);
+        }
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        if (debugValidation) {
+            const blitError = gl.getError();
+            if (blitError !== gl.NO_ERROR) {
+                throw new Error(`[renderTile] Texture blit draw failed with GL error code ${blitError}`);
+            }
+        }
+    } finally {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, previousFramebuffer);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, previousReadFramebuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, previousDrawFramebuffer);
+        gl.useProgram(previousProgram);
+        gl.bindVertexArray(previousVao);
+        gl.activeTexture(previousActiveTexture);
+        gl.bindTexture(gl.TEXTURE_2D, previousTexture2D);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, previousTextureBinding1);
+        gl.activeTexture(previousActiveTexture);
+        gl.viewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
+        gl.scissor(previousScissorBox[0], previousScissorBox[1], previousScissorBox[2], previousScissorBox[3]);
+        restoreGLState(gl, {
+            depthTest: previousDepthTest,
+            stencilTest: previousStencilTest,
+            scissorTest: previousScissorTest,
+            cullFace: previousCullFace,
+            blend: previousBlend
+        });
+        gl.colorMask(previousColorMask[0], previousColorMask[1], previousColorMask[2], previousColorMask[3]);
+    }
+};
+
+const toRasterModules = (tileDataResult, gpuTexture, width, height, debugValidation = false, colorMapping = null) => {
+    const device = tileDataResult &amp;&amp; tileDataResult.device;
+    const gl = getDeviceGl(device);
+    const handle = gpuTexture &amp;&amp; (gpuTexture.texture || gpuTexture);
+    if (!handle) {
+        throw new Error("[renderTile] GPU.js pipeline did not produce a texture handle");
+    }
+
+    const sourceFormat = SOURCE_FORMAT_CACHE.get(gl) || detectSourceTextureFormat(gl, handle);
+    const formatsToTry = sourceFormat === "rgba16float"
+        ? ["rgba16float", "rgba8unorm"]
+        : ["rgba8unorm", "rgba16float"];
+
+    let lumaTexture = null;
+    let lastError = null;
+    for (let i = 0; i &lt; formatsToTry.length; i++) {
+        const format = formatsToTry[i];
+        try {
+            lumaTexture = ensureLumaTexture(tileDataResult, width, height, format);
+            copyGpuTextureToLumaTexture(device, handle, lumaTexture, width, height, debugValidation, colorMapping);
+            SOURCE_FORMAT_CACHE.set(gl, format);
+            lastError = null;
+            break;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (!lumaTexture || lastError) {
+        throw new Error(`[renderTile] Failed to copy GPU texture into luma texture: ${lastError ? lastError.message : "unknown error"}`);
+    }
+
+    return [
+        {
+            module: CreateTexture,
+            props: { textureName: lumaTexture },
+        },
+    ];
+};
+
+const extractGpuTextureHandle = (kernelOutput, kernel) => {
+    if (kernelOutput &amp;&amp; kernelOutput.texture) {
+        return kernelOutput.texture;
+    }
+    if (kernelOutput &amp;&amp; typeof kernelOutput === "object") {
+        if (kernelOutput.texture &amp;&amp; kernelOutput.texture.texture) {
+            return kernelOutput.texture.texture;
+        }
+        if (kernelOutput.webGlTexture) {
+            return kernelOutput.webGlTexture;
+        }
+    }
+
+    // Graphical kernels may not return the texture object directly.
+    if (kernel &amp;&amp; kernel.texture) {
+        return kernel.texture;
+    }
+    if (kernel &amp;&amp; kernel.kernel &amp;&amp; kernel.kernel.texture) {
+        return kernel.kernel.texture;
+    }
+
+    return null;
+};
+
+const runKernelWithIsolatedState = (device, kernel, kernelArgs, width, height) => {
+    const gl = getDeviceGl(device);
+
+    const previousState = captureGLState(gl);
+
+    try {
+        // Prevent deck/luma state from clipping GPU.js offscreen draws.
+        gl.disable(gl.DEPTH_TEST);
+        gl.disable(gl.STENCIL_TEST);
+        gl.disable(gl.SCISSOR_TEST);
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.BLEND);
+        gl.colorMask(true, true, true, true);
+        gl.viewport(0, 0, width, height);
+        // Support both single argument and multiple arguments for pipelined kernels
+        return Array.isArray(kernelArgs) ? kernel(...kernelArgs) : kernel(kernelArgs);
+    } finally {
+        gl.viewport(previousState.viewport[0], previousState.viewport[1], previousState.viewport[2], previousState.viewport[3]);
+        gl.scissor(previousState.scissorBox[0], previousState.scissorBox[1], previousState.scissorBox[2], previousState.scissorBox[3]);
+        restoreGLState(gl, previousState);
+        gl.colorMask(previousState.colorMask[0], previousState.colorMask[1], previousState.colorMask[2], previousState.colorMask[3]);
+    }
+};
+
+/**
+ * Generate a 256-entry color lookup table from gradient colors and stops
+ * Performs linear interpolation between stops on CPU to avoid GPU.js limitations
+ * @param {Array&lt;Array&lt;number>>} colors - RGBA colors (normalized 0-1)
+ * @param {Array&lt;number>} stops - Scalar stop values
+ * @param {number[]|null} domain - Optional scalar domain [min, max], defaults to [-1, 1]
+ * @returns {Array&lt;Array&lt;number>>} 256x4 color LUT (normalized RGBA)
+ * @private
+ */
+const generateColorLUT = (colors, stops, domain = null) => {
+    const lut = new Array(256);
+    const numStops = stops.length;
+
+    let domainMin = -1.0;
+    let domainMax = 1.0;
+    if (Array.isArray(domain) &amp;&amp; domain.length === 2) {
+        const parsedMin = Number(domain[0]);
+        const parsedMax = Number(domain[1]);
+        if (Number.isFinite(parsedMin) &amp;&amp; Number.isFinite(parsedMax) &amp;&amp; parsedMax > parsedMin) {
+            domainMin = parsedMin;
+            domainMax = parsedMax;
+        }
+    }
+    const domainRange = domainMax - domainMin;
+    let segmentIdx = 0;
+
+    for (let i = 0; i &lt; 256; i++) {
+        const t = i / 255.0;
+        const scalarVal = domainMin + t * domainRange;
+
+        if (scalarVal &lt;= stops[0]) {
+            const c = colors[0];
+            lut[i] = [c[0], c[1], c[2], c[3]];
+            continue;
+        }
+        if (scalarVal >= stops[numStops - 1]) {
+            const c = colors[numStops - 1];
+            lut[i] = [c[0], c[1], c[2], c[3]];
+            continue;
+        }
+
+        while (segmentIdx &lt; numStops - 2 &amp;&amp; scalarVal >= stops[segmentIdx + 1]) {
+            segmentIdx++;
+        }
+
+        const t0 = stops[segmentIdx];
+        const t1 = stops[segmentIdx + 1];
+        const localT = (scalarVal - t0) / (t1 - t0);
+
+        const c0 = colors[segmentIdx];
+        const c1 = colors[segmentIdx + 1];
+
+        lut[i] = [
+            c0[0] * (1 - localT) + c1[0] * localT,
+            c0[1] * (1 - localT) + c1[1] * localT,
+            c0[2] * (1 - localT) + c1[2] * localT,
+            c0[3] * (1 - localT) + c1[3] * localT
+        ];
+    }
+
+    return lut;
+};
+
+/**
+ * Render a tile using the active style from the multiband instance
+ * Applies GPU-accelerated style kernel to raster data and returns RasterModule array
+ * 
+ * For Type 1 styles: Applies kernel directly to produce RGBA output
+ * For Type 2 styles: Applies kernel to produce scalar values, then maps through color LUT via GPU shader
+ * 
+ * @param {Object} tileDataResult - The tile data with texture information
+ * @param {Float32Array} tileDataResult.data - Band-major float32 raster data
+ * @param {number} tileDataResult.width - Tile width in pixels
+ * @param {number} tileDataResult.height - Tile height in pixels
+ * @param {number} tileDataResult.bandCount - Number of bands
+ * @param {Object} tileDataResult.device - WebGL device
+ * @param {Object} multibandInstance - The multiband instance with GPU and style management
+ * @returns {Array&lt;Object>} Array of RasterModule objects backed by luma textures
+ * @throws {Error} If no active style or kernel is available
+ * @public
+ */
+const renderTile = (tileDataResult, multibandInstance) => {
+    const debugValidation = Boolean(multibandInstance &amp;&amp; multibandInstance.debug === true);
+
+    if (tileDataResult &amp;&amp; tileDataResult.data) {
+        const [data, rawWidth, rawHeight, bandCount] = [
+            tileDataResult.data,
+            tileDataResult.width,
+            tileDataResult.height,
+            tileDataResult.bandCount
+        ];
+        const width = Math.max(1, Math.floor(Number(rawWidth) || 0));
+        const height = Math.max(1, Math.floor(Number(rawHeight) || 0));
+
+        const activeStyle = (
+            multibandInstance._activeStyle &amp;&amp; multibandInstance._activeStyle.name === multibandInstance._activeStyleName
+        )
+            ? multibandInstance._activeStyle
+            : multibandInstance._styles.find((s) => s.name === multibandInstance._activeStyleName);
+        if (!activeStyle) {
+            throw new Error('[renderTile] No active style found');
+        }
+        multibandInstance._activeStyle = activeStyle;
+
+        const render = multibandInstance._getActiveStyleKernel();
+        if (!render) {
+            throw new Error('[renderTile] No active style kernel available');
+        }
+
+        render.setOutput([width, height]);
+
+        const kernelInput = input(data, [width, height, bandCount]);
+        let kernelOutput = runKernelWithIsolatedState(tileDataResult.device, render, kernelInput, width, height);
+
+        let intermediateTexture = null;
+        let colorMapping = null;
+
+        if (activeStyle.rgbaColors &amp;&amp; activeStyle.stops) {
+            const styleDomain = activeStyle.domain || [-1.0, 1.0];
+            const domainMin = styleDomain[0];
+            const domainMax = styleDomain[1];
+
+            if (!activeStyle.colorLUT) {
+                activeStyle.colorLUT = generateColorLUT(activeStyle.rgbaColors, activeStyle.stops, styleDomain);
+            }
+
+            // Keep reference to intermediate texture for cleanup
+            intermediateTexture = kernelOutput;
+            colorMapping = {
+                colorLUT: activeStyle.colorLUT,
+                domainMin,
+                domainMax,
+            };
+        }
+
+        const textureHandle = extractGpuTextureHandle(kernelOutput, render);
+        if (!textureHandle) {
+            throw new Error("[renderTile] GPU.js kernel did not expose a texture handle");
+        }
+
+        try {
+            return toRasterModules(tileDataResult, textureHandle, width, height, debugValidation, colorMapping);
+        } finally {
+            // Clean up GPU.js intermediate textures after hand-off to luma.
+            if (intermediateTexture &amp;&amp; typeof intermediateTexture.delete === "function") {
+                intermediateTexture.delete();
+            }
+            if (kernelOutput &amp;&amp; kernelOutput !== intermediateTexture &amp;&amp; typeof kernelOutput.delete === "function") {
+                kernelOutput.delete();
+            }
+        }
+
+    } else {
+        throw new Error('[renderTile] Missing tile data for GPU render');
+    }
+};
+
+export { renderTile, releaseBlitResources, destroyLumaTextureRef };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Multiband.html">Multiband</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addStyle">addStyle</a></li><li><a href="global.html#destroyLumaTextureRef">destroyLumaTextureRef</a></li><li><a href="global.html#geoKeysParser">geoKeysParser</a></li><li><a href="global.html#getActiveStyle">getActiveStyle</a></li><li><a href="global.html#getPixelValues">getPixelValues</a></li><li><a href="global.html#getStyles">getStyles</a></li><li><a href="global.html#getTileData">getTileData</a></li><li><a href="global.html#releaseBlitResources">releaseBlitResources</a></li><li><a href="global.html#removeStyle">removeStyle</a></li><li><a href="global.html#renderTile">renderTile</a></li><li><a href="global.html#setActiveStyle">setActiveStyle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Mon Mar 09 2026 11:25:49 GMT+0100 (Central European Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
