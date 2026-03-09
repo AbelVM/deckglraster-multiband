@@ -42,6 +42,14 @@ map.addControl(new maplibregl.ScaleControl({
 }), 'bottom-left');
 
 map.on('load', () => {
+    // Add spinner while TIFF is loading (non-interactive)
+    let spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-label', 'Loading raster');
+    spinner.style.pointerEvents = 'none';
+    document.body.appendChild(spinner);
+
     const pixelPopup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
@@ -75,6 +83,11 @@ map.on('load', () => {
                     duration: 200,
                 }
             );
+            // Remove spinner when the GeoTIFF is ready
+            if (spinner && spinner.parentNode) {
+                spinner.parentNode.removeChild(spinner);
+                spinner = null;
+            }
         },
         beforeId: firstLabelLayerId
     });
@@ -88,6 +101,8 @@ map.on('load', () => {
 
     // Set deck instance for multiband
     map.__deck = overlay._deck;
+
+    // No programmatic height changes here — layout handled with CSS. If needed, call `map.resize()` elsewhere.
 
     // Set crosshair cursor when hovering over raster
     const mapCanvas = map.getCanvas();
@@ -151,13 +166,7 @@ map.on('load', () => {
     const controlsPanel = document.querySelector('.controls-panel');
     const sampleStatus = document.createElement('div');
     sampleStatus.id = 'sample-status';
-    sampleStatus.style.marginTop = '4px';
-    sampleStatus.style.padding = '6px 8px';
-    sampleStatus.style.borderRadius = '6px';
-    sampleStatus.style.background = '#f5f7fa';
-    sampleStatus.style.color = '#233044';
-    sampleStatus.style.fontSize = '12px';
-    sampleStatus.style.lineHeight = '1.35';
+    sampleStatus.className = 'sample-status';
     sampleStatus.textContent = 'Click on the raster to sample pixel values.';
     if (controlsPanel) {
         controlsPanel.appendChild(sampleStatus);
@@ -165,25 +174,21 @@ map.on('load', () => {
 
     const setSampleStatus = (message, isError = false) => {
         sampleStatus.textContent = message;
-        sampleStatus.style.background = isError ? '#fff1f1' : '#f5f7fa';
-        sampleStatus.style.color = isError ? '#8f1f1f' : '#233044';
+        sampleStatus.classList.toggle('error', Boolean(isError));
     };
 
     const resetSamplePanel = () => {
         setSampleStatus('Click on the raster to sample pixel values.');
-        sampleDetails.style.display = 'none';
+        sampleDetails.innerHTML = SAMPLE_DETAILS_PLACEHOLDER;
+        sampleDetails.classList.remove('visible');
     };
 
+    // Reserve fixed space for details to avoid panel resize on updates
+    const SAMPLE_DETAILS_PLACEHOLDER = '<div class="sample-details-placeholder">No sample details to display.</div>';
     const sampleDetails = document.createElement('div');
     sampleDetails.id = 'sample-details';
-    sampleDetails.style.marginTop = '4px';
-    sampleDetails.style.padding = '6px 8px';
-    sampleDetails.style.borderRadius = '6px';
-    sampleDetails.style.background = '#f5f7fa';
-    sampleDetails.style.color = '#233044';
-    sampleDetails.style.fontSize = '12px';
-    sampleDetails.style.lineHeight = '1.35';
-    sampleDetails.style.display = 'none';
+    sampleDetails.className = 'sample-details';
+    sampleDetails.innerHTML = SAMPLE_DETAILS_PLACEHOLDER;
     if (controlsPanel) {
         controlsPanel.appendChild(sampleDetails);
     }
@@ -232,7 +237,8 @@ map.on('load', () => {
 
         if (!sample) {
             setSampleStatus('No sampled value: tile not loaded at this location yet.', true);
-            sampleDetails.style.display = 'none';
+            sampleDetails.innerHTML = '';
+            sampleDetails.classList.remove('visible');
             pixelPopup
                 .setLngLat(lngLat)
                 .setHTML('<strong>No sampled value</strong><br/>Tile not loaded at this location yet.')
@@ -257,8 +263,9 @@ map.on('load', () => {
             
             sampleStatus.style.background = '#f5f7fa';
             sampleStatus.style.color = '#233044';
-            sampleStatus.innerHTML = `<strong>${sample.selectedstyle}:</strong> NO DATA`;
-            sampleDetails.style.display = 'none';
+            sampleStatus.innerHTML = `<span class="sample-status-inner"><strong>${sample.selectedstyle}:</strong> NO DATA</span>`;
+            sampleDetails.innerHTML = SAMPLE_DETAILS_PLACEHOLDER;
+            sampleDetails.classList.remove('visible');
             return;
         }
 
@@ -318,24 +325,24 @@ map.on('load', () => {
             .setHTML(content)
             .addTo(map);
 
-        sampleStatus.style.background = '#f5f7fa';
-        sampleStatus.style.color = '#233044';
-        const panelValueMarkup = isType2Style
-            ? `<strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}`
-            : `<strong>${sample.selectedstyle}:</strong><br/>${valueLabel}${swatch}`;
-        sampleStatus.innerHTML = panelValueMarkup;
+        sampleStatus.classList.remove('error');
+        // Always show the style and value inline in the controls panel (no forced line break)
+        const panelValueMarkup = `<strong>${sample.selectedstyle}:</strong> ${valueLabel}${swatch}`;
+        sampleStatus.innerHTML = `<span class="sample-status-inner">${panelValueMarkup}</span>`;
 
-        sampleDetails.style.display = 'block';
+        sampleDetails.classList.add('visible');
         sampleDetails.innerHTML = `
-            <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-                <thead>
-                    <tr>
-                        <th style="text-align: left; border-bottom: 1px solid #d0d0d0; padding: 2px 0;">Band</th>
-                        <th style="text-align: right; border-bottom: 1px solid #d0d0d0; padding: 2px 0;">Value</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
+            <div class="sample-details-inner">
+                <table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; border-bottom: 1px solid #d0d0d0; padding: 2px 0;">Band</th>
+                            <th style="text-align: right; border-bottom: 1px solid #d0d0d0; padding: 2px 0;">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
         `;
     };
 
@@ -361,6 +368,54 @@ map.on('load', () => {
         resetSamplePanel();
         multiband.setActiveStyle(newStyle, map, 'cog-layer');
     });
+
+    // Ensure map correctly sizes to the updated container dimensions
+    // Dynamically reserve space for the mobile controls panel to avoid overlap.
+    const adjustMapForControls = () => {
+        const panel = document.querySelector('.controls-panel');
+        const mapContainer = map.getContainer();
+        if (!mapContainer) return;
+
+        const mq = window.matchMedia('(max-width: 640px)');
+        // On desktop, clear any inline height we may have set.
+        if (!panel || !mq.matches) {
+            mapContainer.style.height = '';
+            try { map.resize(); } catch (err) { /* ignore */ }
+            return;
+        }
+
+        const rect = panel.getBoundingClientRect();
+        const panelHeight = Math.ceil(rect.height || 0);
+        // Small buffer for borders/margins/safe-area
+        const buffer = 8;
+        mapContainer.style.height = `calc(100vh - ${panelHeight + buffer}px)`;
+        try { map.resize(); } catch (err) { /* ignore */ }
+
+        // If the panel bottom is still off-screen, bring it into view.
+        const panelRect = panel.getBoundingClientRect();
+        if (panelRect.bottom > window.innerHeight) {
+            panel.scrollIntoView({ block: 'end', behavior: 'auto' });
+        }
+    };
+
+    // Debounce helper for resize/DOM-change events
+    let _adjustTimeout = null;
+    const scheduleAdjust = () => {
+        if (_adjustTimeout) clearTimeout(_adjustTimeout);
+        _adjustTimeout = setTimeout(adjustMapForControls, 100);
+    };
+
+    // Run once now and whenever layout/content changes
+    scheduleAdjust();
+    window.addEventListener('resize', scheduleAdjust);
+    window.addEventListener('orientationchange', scheduleAdjust);
+
+    // Observe changes in controls panel (e.g., sample details expanding)
+    const controlsPanelNode = document.querySelector('.controls-panel');
+    if (controlsPanelNode) {
+        const mo = new MutationObserver(scheduleAdjust);
+        mo.observe(controlsPanelNode, { childList: true, subtree: true, attributes: true, characterData: true });
+    }
 });
 
 window.addEventListener('beforeunload', () => {
